@@ -31,14 +31,23 @@ def build_caption_cues(
         if transcript is None:
             continue
         segment_lookup = _word_segment_lookup(transcript)
-        for index, word in enumerate(transcript.words):
-            if word.start < clip.source_start - 1e-6 or word.end > clip.source_end + 1e-6:
+        for index, transcript_word in enumerate(transcript.words):
+            if (
+                transcript_word.start < clip.source_start - 1e-6
+                or transcript_word.end > clip.source_end + 1e-6
+            ):
                 continue
             mapped.append(
                 _MappedWord(
-                    text=word.text.strip(),
-                    start=round(clip.timeline_start + word.start - clip.source_start, 3),
-                    end=round(clip.timeline_start + word.end - clip.source_start, 3),
+                    text=transcript_word.text.strip(),
+                    start=round(
+                        clip.timeline_start + transcript_word.start - clip.source_start,
+                        3,
+                    ),
+                    end=round(
+                        clip.timeline_start + transcript_word.end - clip.source_start,
+                        3,
+                    ),
                     source_segment_ids=segment_lookup.get(index, ()),
                 )
             )
@@ -49,9 +58,9 @@ def build_caption_cues(
     def flush() -> None:
         if not current:
             return
-        text = _join_tokens([word.text for word in current])
+        text = _join_tokens([item.text for item in current])
         segment_ids = tuple(
-            dict.fromkeys(segment_id for word in current for segment_id in word.source_segment_ids)
+            dict.fromkeys(segment_id for item in current for segment_id in item.source_segment_ids)
         )
         cues.append(
             CaptionCue(
@@ -64,16 +73,16 @@ def build_caption_cues(
         )
         current.clear()
 
-    for word in mapped:
-        if not word.text:
+    for mapped_word in mapped:
+        if not mapped_word.text:
             continue
-        proposed = _join_tokens([item.text for item in current] + [word.text])
-        gap = word.start - current[-1].end if current else 0.0
+        proposed = _join_tokens([item.text for item in current] + [mapped_word.text])
+        gap = mapped_word.start - current[-1].end if current else 0.0
         if current and (
             len(proposed) > profile.captions.max_characters_per_card or gap >= pause_break_seconds
         ):
             flush()
-        current.append(word)
+        current.append(mapped_word)
     flush()
     return cues
 
