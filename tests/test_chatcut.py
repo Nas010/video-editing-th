@@ -33,10 +33,20 @@ def test_chatcut_manifest_orders_structural_caption_visual_motion_and_audio(tmp_
                 id="sfx",
                 kind=CreativeOperationKind.SFX,
                 timeline_start=0.5,
-                asset_path=tmp_path / "pop.wav",
-                parameters={"gain_db": -12},
+                asset_id="chatcut:sfx:soft-pop",
+                parameters={"gain_db": -12, "provider": "chatcut-native"},
                 reason="accent",
                 confidence=1,
+            ),
+            CreativeOperation(
+                id="music",
+                kind=CreativeOperationKind.MUSIC,
+                timeline_start=0,
+                timeline_end=2,
+                asset_id="chatcut:music:upbeat-clean",
+                parameters={"gain_db": -24, "provider": "chatcut-native"},
+                reason="light background bed",
+                confidence=0.9,
             ),
             CreativeOperation(
                 id="zoom",
@@ -72,3 +82,11 @@ def test_chatcut_manifest_orders_structural_caption_visual_motion_and_audio(tmp_
     assert any(operation.action == "place_broll" for operation in manifest.operations)
     assert any(operation.action == "add_motion_effect" for operation in manifest.operations)
     assert any(operation.action == "place_sfx" for operation in manifest.operations)
+    assert any(operation.action == "place_music" for operation in manifest.operations)
+    imports = [
+        operation.payload["path"]
+        for operation in manifest.operations
+        if operation.action == "import_media"
+    ]
+    assert str(tmp_path / "gym.mp4") in imports
+    assert not any("chatcut:" in path for path in imports)

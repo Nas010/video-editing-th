@@ -4,10 +4,12 @@ import pytest
 from pydantic import ValidationError
 
 from video_editing_th.config import (
+    DEFAULT_SOCIAL_FPS,
+    DEFAULT_SOCIAL_HEIGHT,
+    DEFAULT_SOCIAL_WIDTH,
     AppConfig,
     AssetLibraryConfig,
     EditingProfile,
-    OutputDefaults,
     WorkflowDefaults,
     default_config_path,
 )
@@ -71,6 +73,23 @@ def test_profile_rejects_non_monotonic_pause_targets() -> None:
         )
 
 
+def test_machine_config_contains_only_local_visual_asset_choices() -> None:
+    assert {"sfx", "music", "transitions"}.isdisjoint(AssetLibraryConfig.model_fields)
+    assert {
+        "captions_enabled",
+        "caption_language",
+        "use_sfx",
+        "use_music",
+        "use_transitions",
+    }.isdisjoint(WorkflowDefaults.model_fields)
+    assert "output" not in AppConfig.model_fields
+    assert (DEFAULT_SOCIAL_WIDTH, DEFAULT_SOCIAL_HEIGHT, DEFAULT_SOCIAL_FPS) == (
+        1080,
+        1920,
+        30.0,
+    )
+
+
 def test_app_config_expands_user_paths(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     fake_home = tmp_path / "home"
     fake_home.mkdir()
@@ -82,6 +101,8 @@ def test_app_config_expands_user_paths(monkeypatch: pytest.MonkeyPatch, tmp_path
             "model_root": "~/models",
             "assets": {
                 "broll": "~/broll",
+                "overlays": "~/overlays",
+                "backgrounds": "~/backgrounds",
                 "catalog_path": "~/catalog/assets.db",
                 "preview_dir": "~/previews",
             },
@@ -92,6 +113,8 @@ def test_app_config_expands_user_paths(monkeypatch: pytest.MonkeyPatch, tmp_path
     assert config.asset_root == fake_home / "assets"
     assert config.model_root == fake_home / "models"
     assert config.assets.broll == fake_home / "broll"
+    assert config.assets.overlays == fake_home / "overlays"
+    assert config.assets.backgrounds == fake_home / "backgrounds"
     assert config.assets.catalog_path == fake_home / "catalog" / "assets.db"
     assert config.assets.preview_dir == fake_home / "previews"
     assert config.ffmpeg_binary == "ffmpeg-custom"
@@ -128,17 +151,18 @@ def test_app_config_save_and_default_load_round_trip(
     monkeypatch.setenv("VIDEO_EDITING_TH_CONFIG", str(config_path))
     broll = tmp_path / "broll"
     overlays = tmp_path / "overlays"
+    backgrounds = tmp_path / "backgrounds"
     broll.mkdir()
     overlays.mkdir()
+    backgrounds.mkdir()
 
     config = AppConfig(
-        assets=AssetLibraryConfig(broll=broll, overlays=overlays),
-        workflow=WorkflowDefaults(
-            default_profile="thai-fast-reel",
-            use_music=False,
-            captions_enabled=True,
+        assets=AssetLibraryConfig(
+            broll=broll,
+            overlays=overlays,
+            backgrounds=backgrounds,
         ),
-        output=OutputDefaults(width=1080, height=1920, fps=30),
+        workflow=WorkflowDefaults(default_profile="thai-fast-reel"),
     )
 
     written = config.save()
@@ -149,7 +173,46 @@ def test_app_config_save_and_default_load_round_trip(
     assert loaded.assets.configured_folders() == {
         AssetRole.BROLL: broll.resolve(),
         AssetRole.OVERLAY: overlays.resolve(),
+        AssetRole.BACKGROUND: backgrounds.resolve(),
     }
+
+
+def test_app_config_load_migrates_deprecated_native_chatcut_and_output_fields(
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "legacy.yaml"
+    config_path.write_text(
+        """
+assets:
+  broll: /tmp/broll
+  sfx: /tmp/sfx
+  music: /tmp/music
+  transitions: /tmp/transitions
+workflow:
+  default_profile: thai-fast-reel
+  use_sfx: true
+  use_music: true
+  use_transitions: true
+  captions_enabled: false
+  caption_language: th
+output:
+  width: 720
+  height: 1280
+  fps: 24
+""".strip(),
+        encoding="utf-8",
+    )
+
+    loaded = AppConfig.load(config_path)
+    rewritten = loaded.save(config_path)
+    saved = rewritten.read_text(encoding="utf-8")
+
+    assert loaded.assets.broll == Path("/tmp/broll")
+    assert "sfx:" not in saved
+    assert "music:" not in saved
+    assert "transitions:" not in saved
+    assert "captions_enabled" not in saved
+    assert "output:" not in saved
 
 
 def test_app_config_load_without_saved_file_uses_defaults(
@@ -161,6 +224,6 @@ def test_app_config_load_without_saved_file_uses_defaults(
 
     assert config.workflow.default_profile == "thai-fast-reel"
     assert config.workflow.editor_backend == "chatcut"
-    assert config.output.width == 1080
-    assert config.output.height == 1920
-    assert config.workflow.captions_enabled is True
+    assert config.workflow.use_broll is True
+    assert config.workflow.use_overlays is True
+    assert config.workflow.use_motion is True

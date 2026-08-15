@@ -50,7 +50,9 @@ After installation, run the interactive wizard once:
 video-editing-th configure
 ```
 
-It asks for the optional B-roll, overlay/graphics, sound-effects, music, transition, and background folders, plus default output/profile/caption settings. Personal paths are saved outside the repository.
+It asks only for optional local B-roll, overlay/graphics, and background folders plus the default editing profile. Personal paths are saved outside the repository.
+
+ChatCut's own libraries provide sound effects, music, and transitions. The standard project format is 1080x1920 at 30 fps. Captions are specified per project in the Codex prompt. These do not belong in machine setup.
 
 Verify the result:
 
@@ -59,7 +61,7 @@ video-editing-th config path
 video-editing-th config show --json
 ```
 
-When at least one creative folder is configured, build the shared catalog:
+When at least one local visual folder is configured, build the shared catalog:
 
 ```bash
 video-editing-th assets index-configured
@@ -73,11 +75,11 @@ Once configured, the normal Codex request is:
 $video-editing-th <footage-folder>
 ```
 
-The installed skill supplies the complete Thai fast-Reel brief. The user only needs to state per-project overrides.
+The installed skill supplies the complete Thai fast-Reel brief. Ask for captions in that prompt only when they are wanted.
 
 ## What the ASR model does
 
-The Whisper model is used only for **speech recognition**. It turns Thai speech into text plus timing/confidence evidence. Codex combines that evidence with the waveform to decide cuts and retakes, and the corrected transcript can feed captions. Whisper does not perform the actual video edit and does not choose B-roll, zooms, overlays, or sound effects.
+The Whisper model is used only for **speech recognition**. It turns Thai speech into text plus timing/confidence evidence. Codex combines that evidence with the waveform to decide cuts and retakes. When the current project asks for captions, the corrected transcript supplies them. Whisper does not perform the actual video edit and does not choose B-roll, zooms, overlays, sound design, music, or transitions.
 
 ```text
 raw talking-head video
@@ -146,13 +148,13 @@ Run `video-editing-th doctor` after installing external tools. The doctor is rea
 
 ## Application configuration overrides
 
-The one-time wizard writes the application YAML. Advanced users may edit it or point to a different file with `VIDEO_EDITING_TH_CONFIG` or `--config`. The schema includes:
+The one-time wizard writes the application YAML. Advanced users may edit it or point to a different file with `VIDEO_EDITING_TH_CONFIG` or `--config`. The current schema includes:
 
 ```yaml
 assets:
   broll: /local/path/to/broll
   overlays: /local/path/to/overlays
-  sfx: /local/path/to/sfx
+  backgrounds: /local/path/to/backgrounds
   catalog_path: /local/path/to/assets.db
   preview_dir: /local/path/to/previews
 workflow:
@@ -160,16 +162,7 @@ workflow:
   editor_backend: chatcut
   use_broll: true
   use_overlays: true
-  use_sfx: true
-  use_music: true
-  use_transitions: true
   use_motion: true
-  captions_enabled: true
-  caption_language: th
-output:
-  width: 1080
-  height: 1920
-  fps: 30.0
 model_root: /local/path/to/models
 ffmpeg_binary: ffmpeg
 ffprobe_binary: ffprobe
@@ -196,4 +189,4 @@ scripts/install_codex_skill.sh
 
 ## ChatCut
 
-Connect/install the ChatCut MCP integration in the Codex environment. The repository does not store ChatCut credentials or automate account setup. Verify that Codex can create/read a project, import a small test file, and inspect the timeline before processing real footage.
+Connect/install the ChatCut MCP integration in the Codex environment. The repository does not store ChatCut credentials or automate account setup. Verify that Codex can create/read a project, import a small test file, search native media, and inspect the timeline before processing real footage.

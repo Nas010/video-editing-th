@@ -254,6 +254,7 @@ class CreativeOperationKind(StrEnum):
     BROLL = "broll"
     OVERLAY = "overlay"
     SFX = "sfx"
+    MUSIC = "music"
     PUNCH_IN = "punch_in"
     SLOW_ZOOM = "slow_zoom"
     PAN = "pan"
@@ -281,6 +282,7 @@ class CreativeOperation(CanonicalModel):
             CreativeOperationKind.BROLL,
             CreativeOperationKind.OVERLAY,
             CreativeOperationKind.SFX,
+            CreativeOperationKind.MUSIC,
         }
         if self.kind in asset_kinds and self.asset_id is None and self.asset_path is None:
             raise ValueError("asset operation requires asset_id or asset_path")

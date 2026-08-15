@@ -68,6 +68,7 @@ cat <<EOF
 Setup finished. Run the one-time machine configuration next:
   ${RUNNER[*]} configure
 
-It will ask for optional B-roll, overlay, SFX, music, transition, and background
-folders plus the default Reel settings. See docs/configuration.md.
+It asks only for optional local B-roll, overlay/graphics, and background folders
+plus the default editing profile. ChatCut supplies native sound, music, and
+transitions; captions are chosen in each project prompt. See docs/configuration.md.
 EOF

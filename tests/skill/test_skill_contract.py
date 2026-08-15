@@ -36,12 +36,14 @@ def test_skill_declares_complete_default_mission_and_project_overrides() -> None
         "unless the user overrides",
         "fast-paced vertical",
         "1080x1920",
+        "30 fps",
         "remove mistakes",
         "latest complete",
-        "thai captions",
         "b-roll",
         "overlays",
-        "sound effects",
+        "chatcut-native sound effects",
+        "chatcut-native music",
+        "chatcut-native transitions",
         "punch-ins",
         "render",
         "repair",
@@ -49,6 +51,14 @@ def test_skill_declares_complete_default_mission_and_project_overrides() -> None
         assert phrase in lowered
     assert "$video-editing-th <footage-folder>" in text
     assert "per-project override" in lowered
+
+
+def test_skill_makes_captions_an_explicit_per_project_choice() -> None:
+    text = read(SKILL).casefold()
+
+    assert "only add captions when the current prompt explicitly requests them" in text
+    assert "if the prompt is silent about captions, omit them" in text
+    assert "caption preference" not in text
 
 
 def test_skill_references_every_operational_guide_and_core_command() -> None:
@@ -92,14 +102,29 @@ def test_reference_contracts_cover_configuration_execution_and_bounded_qa() -> N
     assert "one-time" in configuration.casefold()
     assert "never invent" in configuration.casefold()
     assert "B-roll folder" in configuration
+    assert "Overlay/graphics folder" in configuration
+    assert "Backgrounds folder" in configuration
+    for removed in [
+        "Sound-effects folder",
+        "Music folder",
+        "Transitions folder",
+        "output width",
+        "output height",
+        "whether Thai captions are enabled",
+    ]:
+        assert removed not in configuration
     assert "config show" in configuration
     assert "MCP" in chatcut
     assert "browser" in chatcut.casefold()
     assert "structural" in chatcut.casefold()
     assert "ChatCut AI" in chatcut
+    assert "native sound" in chatcut.casefold()
+    assert "native music" in chatcut.casefold()
+    assert "native transition" in chatcut.casefold()
     assert "shortlist" in assets.casefold()
     assert "contact sheet" in assets.casefold()
     assert "visual verification" in assets.casefold()
+    assert "local visual" in assets.casefold()
     assert "language" in thai.casefold() and "th" in thai
     assert "CJK" in thai
     assert "safe_for_automatic_editing" in thai

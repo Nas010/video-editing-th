@@ -27,7 +27,7 @@ def test_project_init_command_creates_manifest(tmp_path: Path) -> None:
     assert str(manifest_path) in result.stdout
 
 
-def test_chatcut_export_command_writes_stable_manifest(tmp_path: Path) -> None:
+def test_chatcut_export_command_uses_fixed_social_vertical_defaults(tmp_path: Path) -> None:
     plan_path = tmp_path / "plan.json"
     output = tmp_path / "chatcut.json"
     plan = EditPlan(
@@ -57,7 +57,42 @@ def test_chatcut_export_command_writes_stable_manifest(tmp_path: Path) -> None:
     assert result.exit_code == 0, result.stdout
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert payload["project_id"] == "p1"
+    assert payload["composition_width"] == 1080
+    assert payload["composition_height"] == 1920
+    assert payload["fps"] == 30.0
     assert any(item["action"] == "place_source_clip" for item in payload["operations"])
+
+
+def test_chatcut_export_allows_an_explicit_per_project_format_override(tmp_path: Path) -> None:
+    plan_path = tmp_path / "plan.json"
+    output = tmp_path / "chatcut.json"
+    write_model_atomic(
+        plan_path,
+        EditPlan(project_id="p1", profile_name="test"),
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "chatcut",
+            "export",
+            str(plan_path),
+            "--output",
+            str(output),
+            "--width",
+            "1920",
+            "--height",
+            "1080",
+            "--fps",
+            "24",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["composition_width"] == 1920
+    assert payload["composition_height"] == 1080
+    assert payload["fps"] == 24.0
 
 
 def test_skill_install_command_links_codex_and_agents_targets(tmp_path: Path) -> None:
