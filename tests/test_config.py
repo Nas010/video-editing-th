@@ -3,7 +3,15 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from video_editing_th.config import AppConfig, EditingProfile
+from video_editing_th.config import (
+    AppConfig,
+    AssetLibraryConfig,
+    EditingProfile,
+    OutputDefaults,
+    WorkflowDefaults,
+    default_config_path,
+)
+from video_editing_th.models import AssetRole
 
 
 def test_profile_loads_and_expands_defaults(tmp_path: Path) -> None:
@@ -72,12 +80,20 @@ def test_app_config_expands_user_paths(monkeypatch: pytest.MonkeyPatch, tmp_path
         {
             "asset_root": "~/assets",
             "model_root": "~/models",
+            "assets": {
+                "broll": "~/broll",
+                "catalog_path": "~/catalog/assets.db",
+                "preview_dir": "~/previews",
+            },
             "ffmpeg_binary": "ffmpeg-custom",
         }
     )
 
     assert config.asset_root == fake_home / "assets"
     assert config.model_root == fake_home / "models"
+    assert config.assets.broll == fake_home / "broll"
+    assert config.assets.catalog_path == fake_home / "catalog" / "assets.db"
+    assert config.assets.preview_dir == fake_home / "previews"
     assert config.ffmpeg_binary == "ffmpeg-custom"
 
 
@@ -85,4 +101,66 @@ def test_app_config_expands_default_model_root() -> None:
     config = AppConfig()
 
     assert config.model_root.is_absolute()
+    assert config.assets.catalog_path.is_absolute()
+    assert config.assets.preview_dir.is_absolute()
     assert "~" not in str(config.model_root)
+
+
+def test_default_config_path_honors_environment(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    explicit = tmp_path / "custom" / "config.yaml"
+    monkeypatch.setenv("VIDEO_EDITING_TH_CONFIG", str(explicit))
+
+    assert default_config_path() == explicit.resolve()
+
+    monkeypatch.delenv("VIDEO_EDITING_TH_CONFIG")
+    xdg = tmp_path / "xdg"
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(xdg))
+
+    assert default_config_path() == (xdg / "video-editing-th" / "config.yaml").resolve()
+
+
+def test_app_config_save_and_default_load_round_trip(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    config_path = tmp_path / "config" / "config.yaml"
+    monkeypatch.setenv("VIDEO_EDITING_TH_CONFIG", str(config_path))
+    broll = tmp_path / "broll"
+    overlays = tmp_path / "overlays"
+    broll.mkdir()
+    overlays.mkdir()
+
+    config = AppConfig(
+        assets=AssetLibraryConfig(broll=broll, overlays=overlays),
+        workflow=WorkflowDefaults(
+            default_profile="thai-fast-reel",
+            use_music=False,
+            captions_enabled=True,
+        ),
+        output=OutputDefaults(width=1080, height=1920, fps=30),
+    )
+
+    written = config.save()
+    loaded = AppConfig.load()
+
+    assert written == config_path.resolve()
+    assert loaded == config
+    assert loaded.assets.configured_folders() == {
+        AssetRole.BROLL: broll.resolve(),
+        AssetRole.OVERLAY: overlays.resolve(),
+    }
+
+
+def test_app_config_load_without_saved_file_uses_defaults(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("VIDEO_EDITING_TH_CONFIG", str(tmp_path / "missing.yaml"))
+
+    config = AppConfig.load()
+
+    assert config.workflow.default_profile == "thai-fast-reel"
+    assert config.workflow.editor_backend == "chatcut"
+    assert config.output.width == 1080
+    assert config.output.height == 1920
+    assert config.workflow.captions_enabled is True

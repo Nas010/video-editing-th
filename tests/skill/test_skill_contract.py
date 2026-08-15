@@ -28,9 +28,33 @@ def test_skill_enforces_quality_gate_and_codex_decision_ownership() -> None:
     assert "preserve" in text.casefold()
 
 
+def test_skill_declares_complete_default_mission_and_project_overrides() -> None:
+    text = read(SKILL)
+    lowered = text.casefold()
+
+    for phrase in [
+        "unless the user overrides",
+        "fast-paced vertical",
+        "1080x1920",
+        "remove mistakes",
+        "latest complete",
+        "thai captions",
+        "b-roll",
+        "overlays",
+        "sound effects",
+        "punch-ins",
+        "render",
+        "repair",
+    ]:
+        assert phrase in lowered
+    assert "$video-editing-th <footage-folder>" in text
+    assert "per-project override" in lowered
+
+
 def test_skill_references_every_operational_guide_and_core_command() -> None:
     text = read(SKILL)
     expected_references = [
+        "references/configuration.md",
         "references/thai-transcription.md",
         "references/asr-models.md",
         "references/asset-selection.md",
@@ -42,11 +66,14 @@ def test_skill_references_every_operational_guide_and_core_command() -> None:
         assert (SKILL_ROOT / reference).is_file()
 
     for command in [
+        "video-editing-th configure",
+        "video-editing-th config show",
         "video-editing-th doctor",
         "video-editing-th models recommend",
         "video-editing-th project init",
         "video-editing-th transcribe",
         "video-editing-th analyze",
+        "video-editing-th assets index-configured",
         "video-editing-th assets search",
         "video-editing-th plan validate",
         "video-editing-th chatcut export",
@@ -54,13 +81,18 @@ def test_skill_references_every_operational_guide_and_core_command() -> None:
         assert command in text
 
 
-def test_reference_contracts_cover_execution_and_bounded_qa() -> None:
+def test_reference_contracts_cover_configuration_execution_and_bounded_qa() -> None:
+    configuration = read(SKILL_ROOT / "references" / "configuration.md")
     chatcut = read(SKILL_ROOT / "references" / "chatcut-execution.md")
     assets = read(SKILL_ROOT / "references" / "asset-selection.md")
     thai = read(SKILL_ROOT / "references" / "thai-transcription.md")
     asr = read(SKILL_ROOT / "references" / "asr-models.md")
     qa = read(SKILL_ROOT / "references" / "qa.md")
 
+    assert "one-time" in configuration.casefold()
+    assert "never invent" in configuration.casefold()
+    assert "B-roll folder" in configuration
+    assert "config show" in configuration
     assert "MCP" in chatcut
     assert "browser" in chatcut.casefold()
     assert "structural" in chatcut.casefold()
@@ -80,9 +112,15 @@ def test_reference_contracts_cover_execution_and_bounded_qa() -> None:
 
 def test_skill_has_pressure_scenarios_and_no_placeholders() -> None:
     scenario_files = sorted((ROOT / "tests" / "skill" / "scenarios").glob("*.md"))
-    assert len(scenario_files) >= 4
+    assert len(scenario_files) >= 5
     combined = "\n".join(read(path) for path in scenario_files)
-    for marker in ["corrupted Thai", "latest complete", "asset shortlist", "browser fallback"]:
+    for marker in [
+        "corrupted Thai",
+        "latest complete",
+        "asset shortlist",
+        "browser fallback",
+        "first-use configuration",
+    ]:
         assert marker in combined
 
     deployed_text = "\n".join(

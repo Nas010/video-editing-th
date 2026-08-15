@@ -44,7 +44,7 @@ if command -v uv >/dev/null; then
   else
     uv sync --extra dev
   fi
-  RUNNER=(uv run)
+  RUNNER=(uv run video-editing-th)
 else
   python3 -m venv .venv
   # shellcheck disable=SC1091
@@ -63,4 +63,11 @@ if [[ -f "${ROOT_DIR}/skills/video-editing-th/SKILL.md" ]]; then
 fi
 
 "${RUNNER[@]}" doctor || true
-printf '\nSetup finished. Configure local model, footage, and asset paths manually.\n'
+cat <<EOF
+
+Setup finished. Run the one-time machine configuration next:
+  ${RUNNER[*]} configure
+
+It will ask for optional B-roll, overlay, SFX, music, transition, and background
+folders plus the default Reel settings. See docs/configuration.md.
+EOF

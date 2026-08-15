@@ -9,15 +9,16 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+import yaml
 from rich.console import Console
 from rich.table import Table
 
 from .asr_models import MODEL_SPECS, detect_hardware, installed_models, recommend_whisper_model
 from .asr_models import model_path as whisper_model_path
-from .assets import AssetCatalog, index_assets, search_assets
+from .assets import AssetCatalog, index_asset_folders, index_assets, search_assets
 from .captions import build_caption_cues, build_srt
 from .chatcut import build_chatcut_execution_manifest
-from .config import AppConfig, EditingProfile
+from .config import AppConfig, EditingProfile, default_config_path
 from .doctor import run_doctor
 from .io import read_model, write_model_atomic
 from .media import inventory_folder, probe_media
@@ -46,6 +47,7 @@ app = typer.Typer(
     help="Thai talking-head analysis, asset retrieval, edit planning, and ChatCut execution.",
     no_args_is_help=True,
 )
+config_app = typer.Typer(help="Inspect the one-time machine configuration.", no_args_is_help=True)
 project_app = typer.Typer(help="Create and analyze footage projects.", no_args_is_help=True)
 assets_app = typer.Typer(
     help="Index and search reusable B-roll, overlays, and SFX.",
@@ -67,6 +69,7 @@ chatcut_app = typer.Typer(
 )
 skill_app = typer.Typer(help="Install the repository Codex skill.", no_args_is_help=True)
 
+app.add_typer(config_app, name="config")
 app.add_typer(project_app, name="project")
 app.add_typer(assets_app, name="assets")
 app.add_typer(models_app, name="models")
@@ -75,6 +78,191 @@ app.add_typer(captions_app, name="captions")
 app.add_typer(render_app, name="render")
 app.add_typer(chatcut_app, name="chatcut")
 app.add_typer(skill_app, name="skill")
+
+
+@app.command("configure")
+def configure_command(
+    config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    non_interactive: Annotated[bool, typer.Option("--non-interactive")] = False,
+    broll: Annotated[Path | None, typer.Option("--broll")] = None,
+    overlays: Annotated[Path | None, typer.Option("--overlays")] = None,
+    sfx: Annotated[Path | None, typer.Option("--sfx")] = None,
+    music: Annotated[Path | None, typer.Option("--music")] = None,
+    transitions: Annotated[Path | None, typer.Option("--transitions")] = None,
+    backgrounds: Annotated[Path | None, typer.Option("--backgrounds")] = None,
+    profile: Annotated[str | None, typer.Option("--profile")] = None,
+    width: Annotated[int | None, typer.Option("--width", min=2)] = None,
+    height: Annotated[int | None, typer.Option("--height", min=2)] = None,
+    fps: Annotated[float | None, typer.Option("--fps", min=1)] = None,
+    captions: Annotated[
+        bool | None,
+        typer.Option("--captions/--no-captions", help="Enable or disable Thai captions."),
+    ] = None,
+    use_broll: Annotated[bool | None, typer.Option("--use-broll/--no-use-broll")] = None,
+    use_overlays: Annotated[
+        bool | None,
+        typer.Option("--use-overlays/--no-use-overlays"),
+    ] = None,
+    use_sfx: Annotated[bool | None, typer.Option("--use-sfx/--no-use-sfx")] = None,
+    use_music: Annotated[bool | None, typer.Option("--use-music/--no-use-music")] = None,
+    use_transitions: Annotated[
+        bool | None,
+        typer.Option("--use-transitions/--no-use-transitions"),
+    ] = None,
+    use_motion: Annotated[bool | None, typer.Option("--use-motion/--no-use-motion")] = None,
+) -> None:
+    """Create or update the one-time machine-local editing configuration."""
+
+    destination = _config_destination(config_path)
+    current = AppConfig.load(destination)
+
+    if non_interactive:
+        selected_broll = _resolve_optional_directory(
+            broll if broll is not None else current.assets.broll,
+            "B-roll folder",
+        )
+        selected_overlays = _resolve_optional_directory(
+            overlays if overlays is not None else current.assets.overlays,
+            "Overlay/graphics folder",
+        )
+        selected_sfx = _resolve_optional_directory(
+            sfx if sfx is not None else current.assets.sfx,
+            "Sound-effects folder",
+        )
+        selected_music = _resolve_optional_directory(
+            music if music is not None else current.assets.music,
+            "Music folder",
+        )
+        selected_transitions = _resolve_optional_directory(
+            transitions if transitions is not None else current.assets.transitions,
+            "Transitions folder",
+        )
+        selected_backgrounds = _resolve_optional_directory(
+            backgrounds if backgrounds is not None else current.assets.backgrounds,
+            "Backgrounds folder",
+        )
+        selected_profile = profile or current.workflow.default_profile
+        selected_width = width or current.output.width
+        selected_height = height or current.output.height
+        selected_fps = fps or current.output.fps
+        selected_captions = captions if captions is not None else current.workflow.captions_enabled
+    else:
+        selected_broll = _selected_or_prompted_directory(
+            broll,
+            current.assets.broll,
+            "B-roll folder",
+        )
+        selected_overlays = _selected_or_prompted_directory(
+            overlays,
+            current.assets.overlays,
+            "Overlay/graphics folder",
+        )
+        selected_sfx = _selected_or_prompted_directory(
+            sfx,
+            current.assets.sfx,
+            "Sound-effects folder",
+        )
+        selected_music = _selected_or_prompted_directory(
+            music,
+            current.assets.music,
+            "Music folder",
+        )
+        selected_transitions = _selected_or_prompted_directory(
+            transitions,
+            current.assets.transitions,
+            "Transitions folder",
+        )
+        selected_backgrounds = _selected_or_prompted_directory(
+            backgrounds,
+            current.assets.backgrounds,
+            "Backgrounds folder",
+        )
+        selected_profile = profile or typer.prompt(
+            "Default editing profile",
+            default=current.workflow.default_profile,
+        )
+        selected_width = width or typer.prompt(
+            "Output width",
+            default=current.output.width,
+            type=int,
+        )
+        selected_height = height or typer.prompt(
+            "Output height",
+            default=current.output.height,
+            type=int,
+        )
+        selected_fps = fps or typer.prompt(
+            "Output frame rate",
+            default=current.output.fps,
+            type=float,
+        )
+        selected_captions = (
+            captions
+            if captions is not None
+            else typer.confirm(
+                "Enable Thai captions",
+                default=current.workflow.captions_enabled,
+            )
+        )
+
+    assets = current.assets.model_copy(
+        update={
+            "broll": selected_broll,
+            "overlays": selected_overlays,
+            "sfx": selected_sfx,
+            "music": selected_music,
+            "transitions": selected_transitions,
+            "backgrounds": selected_backgrounds,
+        }
+    )
+    workflow = current.workflow.model_copy(
+        update={
+            "default_profile": selected_profile,
+            "captions_enabled": selected_captions,
+            "use_broll": use_broll if use_broll is not None else current.workflow.use_broll,
+            "use_overlays": (
+                use_overlays if use_overlays is not None else current.workflow.use_overlays
+            ),
+            "use_sfx": use_sfx if use_sfx is not None else current.workflow.use_sfx,
+            "use_music": use_music if use_music is not None else current.workflow.use_music,
+            "use_transitions": (
+                use_transitions if use_transitions is not None else current.workflow.use_transitions
+            ),
+            "use_motion": (use_motion if use_motion is not None else current.workflow.use_motion),
+        }
+    )
+    output = current.output.model_copy(
+        update={"width": selected_width, "height": selected_height, "fps": selected_fps}
+    )
+    configured = current.model_copy(
+        update={"assets": assets, "workflow": workflow, "output": output}
+    )
+    written = configured.save(destination)
+    typer.echo(f"Saved configuration: {written}")
+
+
+@config_app.command("path")
+def config_path_command(
+    config_path: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """Print the active machine-local configuration path."""
+
+    typer.echo(str(_config_destination(config_path)))
+
+
+@config_app.command("show")
+def config_show_command(
+    config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    as_json: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """Print the resolved machine configuration."""
+
+    config = AppConfig.load(_config_destination(config_path))
+    payload = config.model_dump(mode="json", exclude_none=True)
+    if as_json:
+        typer.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+    else:
+        typer.echo(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False).rstrip())
 
 
 @app.command("doctor")
@@ -301,19 +489,19 @@ def analyze_command(
 @assets_app.command("index")
 def assets_index(
     asset_root: Annotated[Path, typer.Argument(help="Reusable asset-library root.")],
-    catalog_path: Annotated[Path, typer.Option("--catalog")],
-    preview_dir: Annotated[Path, typer.Option("--preview-dir")],
+    catalog_path: Annotated[Path | None, typer.Option("--catalog")] = None,
+    preview_dir: Annotated[Path | None, typer.Option("--preview-dir")] = None,
     config_path: Annotated[Path | None, typer.Option("--config")] = None,
     strict: Annotated[bool, typer.Option("--strict/--continue-on-error")] = True,
 ) -> None:
     """Incrementally index technical metadata and contact sheets."""
 
     config = AppConfig.load(config_path)
-    with AssetCatalog(catalog_path) as catalog:
+    with AssetCatalog(catalog_path or config.assets.catalog_path) as catalog:
         summary = index_assets(
             asset_root,
             catalog,
-            preview_dir,
+            preview_dir or config.assets.preview_dir,
             ffprobe_binary=config.ffprobe_binary,
             ffmpeg_binary=config.ffmpeg_binary,
             strict=strict,
@@ -321,11 +509,47 @@ def assets_index(
     typer.echo(json.dumps(asdict(summary), ensure_ascii=False, default=list, indent=2))
 
 
+@assets_app.command("index-configured")
+def assets_index_configured(
+    config_path: Annotated[Path | None, typer.Option("--config")] = None,
+    strict: Annotated[bool, typer.Option("--strict/--continue-on-error")] = True,
+) -> None:
+    """Index every role-specific folder saved by the one-time configuration."""
+
+    config = AppConfig.load(config_path)
+    folders = config.assets.configured_folders()
+    with AssetCatalog(config.assets.catalog_path) as catalog:
+        if folders:
+            summary = index_asset_folders(
+                folders,
+                catalog,
+                config.assets.preview_dir,
+                ffprobe_binary=config.ffprobe_binary,
+                ffmpeg_binary=config.ffmpeg_binary,
+                strict=strict,
+            )
+        elif config.asset_root is not None:
+            summary = index_assets(
+                config.asset_root,
+                catalog,
+                config.assets.preview_dir,
+                ffprobe_binary=config.ffprobe_binary,
+                ffmpeg_binary=config.ffmpeg_binary,
+                strict=strict,
+            )
+        else:
+            raise typer.BadParameter(
+                "No asset folders are configured. Run 'video-editing-th configure' first."
+            )
+    typer.echo(json.dumps(asdict(summary), ensure_ascii=False, default=list, indent=2))
+
+
 @assets_app.command("annotate")
 def assets_annotate(
-    catalog_path: Annotated[Path, typer.Option("--catalog")],
     asset_id: Annotated[str, typer.Argument()],
     description: Annotated[str, typer.Option("--description")],
+    catalog_path: Annotated[Path | None, typer.Option("--catalog")] = None,
+    config_path: Annotated[Path | None, typer.Option("--config")] = None,
     tag: Annotated[list[str] | None, typer.Option("--tag")] = None,
     use_case: Annotated[list[str] | None, typer.Option("--use-case")] = None,
     shot_type: Annotated[str | None, typer.Option("--shot-type")] = None,
@@ -333,7 +557,8 @@ def assets_annotate(
 ) -> None:
     """Persist Codex-authored descriptions, tags, and suggested use cases."""
 
-    with AssetCatalog(catalog_path) as catalog:
+    config = AppConfig.load(config_path)
+    with AssetCatalog(catalog_path or config.assets.catalog_path) as catalog:
         asset = catalog.annotate(
             asset_id,
             description=description,
@@ -348,14 +573,16 @@ def assets_annotate(
 @assets_app.command("search")
 def assets_search(
     query: Annotated[str, typer.Argument()],
-    catalog_path: Annotated[Path, typer.Option("--catalog")],
+    catalog_path: Annotated[Path | None, typer.Option("--catalog")] = None,
+    config_path: Annotated[Path | None, typer.Option("--config")] = None,
     role: Annotated[AssetRole | None, typer.Option("--role")] = None,
     orientation: Annotated[str | None, typer.Option("--orientation")] = None,
     limit: Annotated[int, typer.Option("--limit", min=1, max=100)] = 10,
 ) -> None:
     """Return a compact candidate shortlist for Codex visual verification."""
 
-    with AssetCatalog(catalog_path) as catalog:
+    config = AppConfig.load(config_path)
+    with AssetCatalog(catalog_path or config.assets.catalog_path) as catalog:
         results = search_assets(
             catalog,
             query,
@@ -442,18 +669,20 @@ def render_preview(
 def chatcut_export(
     plan_path: Annotated[Path, typer.Argument()],
     output: Annotated[Path, typer.Option("--output")],
-    width: Annotated[int, typer.Option("--width", min=2)] = 1080,
-    height: Annotated[int, typer.Option("--height", min=2)] = 1920,
-    fps: Annotated[float, typer.Option("--fps", min=1)] = 30.0,
+    width: Annotated[int | None, typer.Option("--width", min=2)] = None,
+    height: Annotated[int | None, typer.Option("--height", min=2)] = None,
+    fps: Annotated[float | None, typer.Option("--fps", min=1)] = None,
+    config_path: Annotated[Path | None, typer.Option("--config")] = None,
 ) -> None:
     """Export ordered operations that Codex executes through ChatCut MCP/browser."""
 
+    config = AppConfig.load(config_path)
     plan = read_model(plan_path, EditPlan)
     manifest = build_chatcut_execution_manifest(
         plan,
-        composition_width=width,
-        composition_height=height,
-        fps=fps,
+        composition_width=width or config.output.width,
+        composition_height=height or config.output.height,
+        fps=fps or config.output.fps,
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(manifest.model_dump_json(indent=2) + "\n", encoding="utf-8")
@@ -479,6 +708,38 @@ def skill_install(
     )
     for destination in destinations:
         typer.echo(str(destination))
+
+
+def _config_destination(path: Path | None) -> Path:
+    return (path or default_config_path()).expanduser().resolve(strict=False)
+
+
+def _selected_or_prompted_directory(
+    selected: Path | None,
+    current: Path | None,
+    label: str,
+) -> Path | None:
+    if selected is not None:
+        return _resolve_optional_directory(selected, label)
+    answer = typer.prompt(
+        label,
+        default=str(current) if current is not None else "",
+        show_default=current is not None,
+    )
+    return _resolve_optional_directory(answer, label)
+
+
+def _resolve_optional_directory(value: Path | str | None, label: str) -> Path | None:
+    if value is None or not str(value).strip():
+        return None
+    raw = Path(value).expanduser()
+    try:
+        resolved = raw.resolve(strict=True)
+    except OSError as exc:
+        raise typer.BadParameter(f"{label} does not exist: {raw}") from exc
+    if not resolved.is_dir():
+        raise typer.BadParameter(f"{label} is not a directory: {resolved}")
+    return resolved
 
 
 def _load_transcripts(directory: Path) -> dict[str, Transcript]:

@@ -22,7 +22,7 @@ cd video-editing-th
 scripts/setup_macos.sh --install-system --with-whisper
 ```
 
-`--with-whisper` builds the pinned whisper.cpp release and downloads a hardware-recommended multilingual model outside Git. On an 8 GB M1 Mac the normal default is `large-v3-turbo-q5_0`; `large-v3-q5_0` is the accuracy-oriented alternative. See [Local Thai ASR Models](asr-models.md) for the rationale and full M1/8GB guidance.
+`--with-whisper` builds the pinned whisper.cpp release and downloads a hardware-recommended multilingual model outside Git. On an 8 GB M1 Mac the normal default is `large-v3-turbo-q5_0`; `large-v3-q5_0` is the accuracy-oriented alternative. See [Local Thai ASR Models](asr-models.md).
 
 If FFmpeg/CMake are already installed and you do not want the script to use Homebrew, omit `--install-system`.
 
@@ -41,6 +41,39 @@ scripts/setup_debian.sh
 By default, setup scripts do not run the operating-system package manager unless you explicitly use the documented `--install-system` option. `--with-optional` installs `faster-whisper`, PySceneDetect, and OpenTimelineIO.
 
 The scripts prefer `uv`; without it they create `.venv` and install the repository in editable mode.
+
+## One-time Codex configuration
+
+After installation, run the interactive wizard once:
+
+```bash
+video-editing-th configure
+```
+
+It asks for the optional B-roll, overlay/graphics, sound-effects, music, transition, and background folders, plus default output/profile/caption settings. Personal paths are saved outside the repository.
+
+Verify the result:
+
+```bash
+video-editing-th config path
+video-editing-th config show --json
+```
+
+When at least one creative folder is configured, build the shared catalog:
+
+```bash
+video-editing-th assets index-configured
+```
+
+See [One-Time Configuration](configuration.md) for the full wizard, non-interactive Codex setup, path resolution, and reconfiguration rules.
+
+Once configured, the normal Codex request is:
+
+```text
+$video-editing-th <footage-folder>
+```
+
+The installed skill supplies the complete Thai fast-Reel brief. The user only needs to state per-project overrides.
 
 ## What the ASR model does
 
@@ -111,12 +144,32 @@ python -m pip install -e '.[transcription]'
 
 Run `video-editing-th doctor` after installing external tools. The doctor is read-only and reports OS/architecture, RAM, the recommended ASR model, available transcription backends, and cached GGML models.
 
-## Application configuration
+## Application configuration overrides
 
-A local YAML file may override executable names and paths:
+The one-time wizard writes the application YAML. Advanced users may edit it or point to a different file with `VIDEO_EDITING_TH_CONFIG` or `--config`. The schema includes:
 
 ```yaml
-asset_root: /local/path/to/assets
+assets:
+  broll: /local/path/to/broll
+  overlays: /local/path/to/overlays
+  sfx: /local/path/to/sfx
+  catalog_path: /local/path/to/assets.db
+  preview_dir: /local/path/to/previews
+workflow:
+  default_profile: thai-fast-reel
+  editor_backend: chatcut
+  use_broll: true
+  use_overlays: true
+  use_sfx: true
+  use_music: true
+  use_transitions: true
+  use_motion: true
+  captions_enabled: true
+  caption_language: th
+output:
+  width: 1080
+  height: 1920
+  fps: 30.0
 model_root: /local/path/to/models
 ffmpeg_binary: ffmpeg
 ffprobe_binary: ffprobe
@@ -125,7 +178,7 @@ whisper_cpp_binary: whisper-cli
 project_edit_dir_name: edit
 ```
 
-Do not commit personal absolute paths. Keep local configuration outside the repository or in an ignored file.
+Do not commit personal absolute paths. Keep local configuration outside the repository.
 
 ## Install the Codex skill
 
