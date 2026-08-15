@@ -16,7 +16,7 @@ $video-editing-th <footage-folder>
 
 Unless the user overrides a setting for that project, the skill produces a fast-paced **1080x1920 at 30 fps** Thai Reel: mistakes, false starts, superseded retakes, and excess dead air are removed; the latest complete good takes are selected; relevant local B-roll, overlays, and backgrounds are retrieved from the configured visual library; restrained motion effects are added; and Codex selects appropriate **ChatCut-native sound effects**, **ChatCut-native music**, and **ChatCut-native transitions** inside the editor. The editable timeline is built in ChatCut, rendered, inspected, and repaired through a bounded QA loop.
 
-**Captions are a per-project prompt choice.** Ask for Thai captions in the current prompt when they are wanted. If the prompt is silent about captions, the skill omits them.
+**In this workflow, captions are a per-project prompt choice.** Ask for Thai captions in the current prompt when they are wanted. If the prompt is silent about captions, the skill omits them.
 
 ## What it covers
 
