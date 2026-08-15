@@ -147,11 +147,11 @@ class WhisperCppBackend:
                 words.append(TranscriptWord(text=text, start=start, end=end))
             if end <= start:
                 continue
-            probabilities = [
-                words[index].probability
-                for index in word_indices
-                if words[index].probability is not None
-            ]
+            probabilities: list[float] = []
+            for index in word_indices:
+                probability = words[index].probability
+                if probability is not None:
+                    probabilities.append(probability)
             confidence = sum(probabilities) / len(probabilities) if probabilities else None
             segments.append(
                 TranscriptSegment(
