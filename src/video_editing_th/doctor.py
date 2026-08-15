@@ -64,9 +64,7 @@ def run_doctor(
     hardware = detect_hardware()
     recommendation = recommend_whisper_model(hardware)
     memory_detail = (
-        f"{hardware.memory_gib:.1f} GiB RAM"
-        if hardware.memory_gib is not None
-        else "RAM unknown"
+        f"{hardware.memory_gib:.1f} GiB RAM" if hardware.memory_gib is not None else "RAM unknown"
     )
 
     checks: list[DoctorCheck] = [
