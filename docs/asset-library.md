@@ -1,6 +1,6 @@
 # Asset Library
 
-## Configure folders once
+## Configure local visual folders once
 
 Run:
 
@@ -8,9 +8,9 @@ Run:
 video-editing-th configure
 ```
 
-The wizard accepts separate optional folders for B-roll, overlays/graphics, sound effects, music, transitions, and backgrounds. They may live under one shared root or in completely different locations and drives.
+The wizard accepts separate optional folders for B-roll, overlays/graphics, and backgrounds. They may live under one shared root or in different locations and drives.
 
-A conventional shared layout remains useful:
+A conventional shared layout is:
 
 ```text
 VideoAssets/
@@ -22,16 +22,12 @@ VideoAssets/
 │   ├── arrows/
 │   ├── checkmarks/
 │   └── social-ui/
-├── sfx/
-│   ├── impacts/
-│   ├── pops/
-│   └── whooshes/
-├── transitions/
-├── backgrounds/
-└── music/
+└── backgrounds/
 ```
 
-With role-specific configuration, the saved role is authoritative; the directory name does not need to contain `broll`, `sfx`, or another keyword.
+With role-specific configuration, the saved role is authoritative; the directory name does not need to contain `broll`, `overlays`, or `backgrounds`.
+
+Sound effects, music, and transitions come from ChatCut's native libraries in the normal workflow and are not indexed as machine-local dependencies.
 
 ## Index configured folders together
 
@@ -39,9 +35,9 @@ With role-specific configuration, the saved role is authoritative; the directory
 video-editing-th assets index-configured
 ```
 
-Every configured root is scanned as one logical library. Pruning happens only after the combined scan, so refreshing B-roll cannot remove SFX or overlays stored in another configured folder.
+Every configured visual root is scanned as one logical library. Pruning happens only after the combined scan, so refreshing B-roll cannot remove overlays or backgrounds stored in another configured folder.
 
-The default catalog and contact-sheet locations come from the one-time config. Unchanged files are skipped by SHA-256. Changed files retain existing annotations. Files missing from all configured roots are removed from the catalog.
+The default catalog and contact-sheet locations come from the one-time config. Unchanged files are skipped by SHA-256. Changed files retain existing annotations. Files missing from all configured visual roots are removed from the catalog.
 
 The catalog stores duration, resolution, orientation, audio presence, transparency hints, descriptions, tags, use cases, shot type, camera motion, and contact-sheet paths.
 
@@ -55,7 +51,7 @@ video-editing-th assets index /local/VideoAssets \
   --preview-dir /local/VideoAssets/.video-editing-th/previews
 ```
 
-For this form, folder names help infer each asset role. Because a single-root scan prunes against that root, use `index-configured` for the persistent multi-folder catalog.
+For this explicit form, folder names help infer each asset role, and the generic indexer still understands audio/transition roles for advanced uses. Because a single-root scan prunes against that root, use `index-configured` for the normal persistent visual catalog.
 
 ## Annotate
 
@@ -84,6 +80,8 @@ video-editing-th assets search "incline dumbbell chest training" \
 
 Search results are a shortlist, not an automatic placement decision. Codex checks contact sheets, inspects the strongest original clips when necessary, avoids repeated use, chooses exact source ranges, and records its reasoning in the plan.
 
+For native sound effects, music, and transitions, Codex searches/previews the choices inside ChatCut and records stable native references in the edit plan instead of local file paths.
+
 ## Missing categories
 
-Asset folders are optional. When no overlay or SFX folder is configured, the skill omits that category and still produces a talking-head edit. If no folders at all are configured, `assets index-configured` reports a clear configuration error but structural editing remains available.
+Visual asset folders are optional. When no overlay or background folder is configured, the skill omits that local category and still produces a talking-head edit. If no visual folders at all are configured, `assets index-configured` reports a clear configuration error but structural editing and ChatCut-native creative choices remain available.
