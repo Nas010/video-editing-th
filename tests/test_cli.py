@@ -1,13 +1,14 @@
 import json
+import re
 from pathlib import Path
 
 import yaml
-from click import unstyle
 from typer.testing import CliRunner
 
 from video_editing_th.cli import app
 
 runner = CliRunner()
+ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
 
 
 def test_root_help_lists_primary_workflows() -> None:
@@ -36,7 +37,7 @@ def test_configure_help_only_exposes_machine_local_visual_choices() -> None:
     result = runner.invoke(app, ["configure", "--help"])
 
     assert result.exit_code == 0
-    help_text = unstyle(result.stdout)
+    help_text = ANSI_ESCAPE.sub("", result.stdout)
     for option in ["--broll", "--overlays", "--backgrounds", "--profile"]:
         assert option in help_text
     for removed in [
