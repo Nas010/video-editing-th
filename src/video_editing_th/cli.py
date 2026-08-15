@@ -12,13 +12,8 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from .asr_models import (
-    MODEL_SPECS,
-    detect_hardware,
-    installed_models,
-    model_path as whisper_model_path,
-    recommend_whisper_model,
-)
+from .asr_models import MODEL_SPECS, detect_hardware, installed_models, recommend_whisper_model
+from .asr_models import model_path as whisper_model_path
 from .assets import AssetCatalog, index_assets, search_assets
 from .captions import build_caption_cues, build_srt
 from .chatcut import build_chatcut_execution_manifest
@@ -158,7 +153,11 @@ def models_list(
     table.add_column("Installed")
     table.add_column("Notes")
     for name, spec in MODEL_SPECS.items():
-        size = f"{spec.disk_mib / 1024:.1f} GiB" if spec.disk_mib >= 1024 else f"{spec.disk_mib} MiB"
+        size = (
+            f"{spec.disk_mib / 1024:.1f} GiB"
+            if spec.disk_mib >= 1024
+            else f"{spec.disk_mib} MiB"
+        )
         table.add_row(name, size, "yes" if name in present else "no", spec.notes)
     console.print(table)
 
