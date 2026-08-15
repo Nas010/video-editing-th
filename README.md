@@ -7,6 +7,7 @@ A Codex-driven production pipeline for turning raw Thai talking-head footage int
 ## What it covers
 
 - explicit Thai (`th`) transcription through `whisper.cpp`, optional `faster-whisper`, or imported corrected JSON;
+- hardware-aware local Whisper model selection, including an 8 GB Apple Silicon profile;
 - hard rejection of CJK leakage, repeated hallucinations, wrong-language routing, and low Thai-script ratios;
 - conservative retake grouping with “latest complete take” evidence;
 - word-safe structural cuts, pause tightening, and output-time Thai captions;
@@ -41,15 +42,19 @@ The canonical plan, transcript, quality report, and asset database remain indepe
 
 ## Quick start
 
-### macOS
+### macOS with local Thai ASR
 
 ```bash
 git clone https://github.com/Nas010/video-editing-th.git
 cd video-editing-th
-scripts/setup_macos.sh
+scripts/setup_macos.sh --install-system --with-whisper
 ```
 
-Add `--install-system` only when the script should install missing FFmpeg through Homebrew. Add `--with-optional` to install the optional Python ASR/scene/timeline adapters.
+This installs the project/Codex skill, builds a pinned whisper.cpp release, and downloads a model chosen from the machine's RAM. On a 2020 M1 MacBook Air with 8 GB RAM, the normal default is `large-v3-turbo-q5_0`; `large-v3-q5_0` is the accuracy-oriented option. Full `large-v3` can run, but is not the recommended concurrent-editing default because the official whisper.cpp documentation lists the large family at about 3.9 GB runtime memory.
+
+See [Local Thai ASR Models](docs/asr-models.md) for exactly what Whisper does and why these defaults are conservative.
+
+Add `--with-optional` to install the optional Python ASR/scene/timeline adapters as well.
 
 ### Debian or Ubuntu
 
@@ -59,7 +64,25 @@ cd video-editing-th
 scripts/setup_debian.sh
 ```
 
-The setup scripts do not download model weights, upload footage, or configure personal folders. Complete those local choices using [the setup guide](docs/setup.md).
+The setup scripts do not upload footage or configure personal folders. Complete those local choices using [the setup guide](docs/setup.md).
+
+## Check the local ASR setup
+
+```bash
+video-editing-th models recommend
+video-editing-th models list
+video-editing-th doctor
+```
+
+Whisper is the speech-recognition stage: it produces Thai text, timing, and confidence evidence. It does not edit the video. Codex combines the transcript with waveform/silence evidence to choose retakes and cuts, and the corrected transcript can also drive captions.
+
+When the recommended model exists in the normal cache, an explicit model path is optional:
+
+```bash
+video-editing-th transcribe FOOTAGE/clip.mov \
+  --backend whisper.cpp \
+  --language th
+```
 
 ## Core workflow
 
@@ -74,7 +97,6 @@ video-editing-th project inventory FOOTAGE
 # Transcribe each source with an explicit Thai route.
 video-editing-th transcribe FOOTAGE/clip.mov \
   --backend whisper.cpp \
-  --model /path/to/ggml-large-v3.bin \
   --language th \
   --output FOOTAGE/edit/transcripts/clip.json
 
@@ -135,6 +157,7 @@ Descriptions, tags, use cases, contact sheets, and file hashes persist between p
 
 - [Architecture](docs/architecture.md)
 - [Setup](docs/setup.md)
+- [Local Thai ASR models](docs/asr-models.md)
 - [Project layout](docs/project-layout.md)
 - [Asset library](docs/asset-library.md)
 - [ChatCut execution](docs/chatcut.md)
