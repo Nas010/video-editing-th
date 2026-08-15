@@ -31,10 +31,7 @@ MODEL_SPECS: dict[str, WhisperModelSpec] = {
         disk_mib=2960,
         quantized=False,
         turbo=False,
-        notes=(
-            "Maximum-quality baseline; whisper.cpp documents about 3.9 GB "
-            "runtime memory for large."
-        ),
+        notes=("Maximum-quality baseline; whisper.cpp documents about 3.9 GB runtime memory for large."),
     ),
     "large-v3-q5_0": WhisperModelSpec(
         name="large-v3-q5_0",
