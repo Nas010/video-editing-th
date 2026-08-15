@@ -74,21 +74,24 @@ def test_configure_interactive_asks_for_asset_folders(tmp_path: Path) -> None:
     config_path = tmp_path / "config.yaml"
     broll = tmp_path / "broll"
     broll.mkdir()
-    answers = "\n".join(
-        [
-            str(broll),
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-        ]
-    ) + "\n"
+    answers = (
+        "\n".join(
+            [
+                str(broll),
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+            ]
+        )
+        + "\n"
+    )
 
     result = runner.invoke(
         app,
