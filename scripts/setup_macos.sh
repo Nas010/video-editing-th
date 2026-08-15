@@ -73,7 +73,7 @@ if [[ "${INSTALL_WHISPER}" -eq 1 ]]; then
   if [[ "${INSTALL_SYSTEM}" -eq 1 ]]; then
     whisper_args+=(--install-system)
   fi
-  "${ROOT_DIR}/scripts/setup_whisper_cpp_macos.sh" "${whisper_args[@]}"
+  bash "${ROOT_DIR}/scripts/setup_whisper_cpp_macos.sh" "${whisper_args[@]}"
   export PATH="${HOME}/.local/bin:${PATH}"
 fi
 
