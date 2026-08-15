@@ -82,6 +82,13 @@ def test_documented_help_commands_execute() -> None:
         assert result.exit_code == 0, f"{command}: {result.stdout}"
 
 
+def test_setup_scripts_route_uv_through_the_project_cli() -> None:
+    for relative in ["scripts/setup_macos.sh", "scripts/setup_debian.sh"]:
+        script = (ROOT / relative).read_text(encoding="utf-8")
+        assert "RUNNER=(uv run video-editing-th)" in script
+        assert '"${RUNNER[@]}" doctor' in script
+
+
 def test_upstream_attribution_and_no_placeholders() -> None:
     notice = (ROOT / "NOTICE").read_text(encoding="utf-8")
     third_party = (ROOT / "THIRD_PARTY.md").read_text(encoding="utf-8")
