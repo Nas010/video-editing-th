@@ -15,6 +15,7 @@ REQUIRED_DOCS = [
     "README.md",
     "docs/architecture.md",
     "docs/setup.md",
+    "docs/configuration.md",
     "docs/project-layout.md",
     "docs/asset-library.md",
     "docs/chatcut.md",
@@ -39,6 +40,7 @@ def test_required_release_documents_exist_and_are_linked() -> None:
     for link in [
         "docs/architecture.md",
         "docs/setup.md",
+        "docs/configuration.md",
         "docs/asset-library.md",
         "docs/chatcut.md",
         "docs/troubleshooting.md",
@@ -46,16 +48,28 @@ def test_required_release_documents_exist_and_are_linked() -> None:
     ]:
         assert link in readme
 
+    for phrase in [
+        "video-editing-th configure",
+        "video-editing-th config show",
+        "video-editing-th assets index-configured",
+        "$video-editing-th <footage-folder>",
+    ]:
+        assert phrase in readme
+
 
 def test_documented_help_commands_execute() -> None:
     commands = [
         ["--help"],
+        ["configure", "--help"],
+        ["config", "path", "--help"],
+        ["config", "show", "--help"],
         ["doctor", "--help"],
         ["project", "init", "--help"],
         ["project", "inventory", "--help"],
         ["transcribe", "--help"],
         ["analyze", "--help"],
         ["assets", "index", "--help"],
+        ["assets", "index-configured", "--help"],
         ["assets", "search", "--help"],
         ["plan", "validate", "--help"],
         ["captions", "build", "--help"],
