@@ -31,14 +31,20 @@ MODEL_SPECS: dict[str, WhisperModelSpec] = {
         disk_mib=2960,
         quantized=False,
         turbo=False,
-        notes="Maximum-quality baseline; whisper.cpp documents about 3.9 GB runtime memory for large.",
+        notes=(
+            "Maximum-quality baseline; whisper.cpp documents about 3.9 GB "
+            "runtime memory for large."
+        ),
     ),
     "large-v3-q5_0": WhisperModelSpec(
         name="large-v3-q5_0",
         disk_mib=1126,
         quantized=True,
         turbo=False,
-        notes="Accuracy-oriented quantized large-v3; preferred accuracy mode on memory-constrained Macs.",
+        notes=(
+            "Accuracy-oriented quantized large-v3; preferred accuracy mode "
+            "on memory-constrained Macs."
+        ),
     ),
     "large-v3-turbo": WhisperModelSpec(
         name="large-v3-turbo",
@@ -52,7 +58,10 @@ MODEL_SPECS: dict[str, WhisperModelSpec] = {
         disk_mib=547,
         quantized=True,
         turbo=True,
-        notes="Low-memory production default for 8 GB machines; benchmark Thai accuracy before unattended use.",
+        notes=(
+            "Low-memory production default for 8 GB machines; benchmark Thai "
+            "accuracy before unattended use."
+        ),
     ),
 }
 
@@ -122,7 +131,9 @@ def recommend_whisper_model(hardware: HardwareProfile) -> ModelRecommendation:
             accuracy_model="large-v3",
             full_large_v3_supported=True,
             full_large_v3_recommended=True,
-            rationale="16 GB-class or larger machines can use full large-v3 as the accuracy baseline.",
+            rationale=(
+                "16 GB-class or larger machines can use full large-v3 as the accuracy baseline."
+            ),
         )
     return ModelRecommendation(
         default_model="large-v3-q5_0",
