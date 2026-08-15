@@ -70,8 +70,7 @@ def build_caption_cues(
         proposed = _join_tokens([item.text for item in current] + [word.text])
         gap = word.start - current[-1].end if current else 0.0
         if current and (
-            len(proposed) > profile.captions.max_characters_per_card
-            or gap >= pause_break_seconds
+            len(proposed) > profile.captions.max_characters_per_card or gap >= pause_break_seconds
         ):
             flush()
         current.append(word)

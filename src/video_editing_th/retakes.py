@@ -85,9 +85,7 @@ def find_retake_groups(transcript: Transcript, profile: EditingProfile) -> list[
 
         eligible = [candidate for candidate in candidates if candidate.completeness_score >= 0.55]
         recommendation = (
-            eligible[-1].id
-            if eligible and profile.retakes.prefer_latest_complete
-            else None
+            eligible[-1].id if eligible and profile.retakes.prefer_latest_complete else None
         )
         confidence = sum(similarities) / len(similarities) if similarities else 0.0
         results.append(
@@ -124,11 +122,5 @@ def _completeness_score(text: str, restart_score: float) -> float:
     length_score = min(1.0, len(_normalize_text(normalized)) / 20)
     ending_bonus = 0.12 if normalized.endswith(ENDING_PARTICLES) else 0.0
     punctuation_bonus = 0.08 if normalized.endswith((".", "!", "?", "ฯ")) else 0.0
-    score = (
-        0.45
-        + 0.35 * length_score
-        + ending_bonus
-        + punctuation_bonus
-        - 0.55 * restart_score
-    )
+    score = 0.45 + 0.35 * length_score + ending_bonus + punctuation_bonus - 0.55 * restart_score
     return max(0.0, min(1.0, score))

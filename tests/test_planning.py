@@ -29,9 +29,7 @@ def transcript(path: Path) -> Transcript:
             TranscriptWord(text="ครับ", start=1.55, end=2.0),
         ],
         segments=[
-            TranscriptSegment(
-                id="s0", start=1.0, end=2.0, text="สวัสดีครับ", word_indices=[0, 1]
-            )
+            TranscriptSegment(id="s0", start=1.0, end=2.0, text="สวัสดีครับ", word_indices=[0, 1])
         ],
     )
 

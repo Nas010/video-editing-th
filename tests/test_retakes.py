@@ -77,8 +77,6 @@ def test_find_retake_groups_recommends_latest_complete_candidate() -> None:
 
 
 def test_unrelated_segments_are_not_grouped() -> None:
-    transcript = make_transcript(
-        ["กินโปรตีนให้เพียงพอ", "การนอนหลับสำคัญ", "วันนี้อากาศดีมาก"]
-    )
+    transcript = make_transcript(["กินโปรตีนให้เพียงพอ", "การนอนหลับสำคัญ", "วันนี้อากาศดีมาก"])
 
     assert find_retake_groups(transcript, profile()) == []

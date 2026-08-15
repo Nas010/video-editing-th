@@ -77,9 +77,7 @@ def render_packed_markdown(source_name: str, phrases: list[PackedPhrase]) -> str
     lines = [f"## {source_name}  ({len(phrases)} phrases)", ""]
     for phrase in phrases:
         speaker = f" {phrase.speaker}" if phrase.speaker else ""
-        lines.append(
-            f"  [{phrase.start:06.2f}-{phrase.end:06.2f}]{speaker} {phrase.text}"
-        )
+        lines.append(f"  [{phrase.start:06.2f}-{phrase.end:06.2f}]{speaker} {phrase.text}")
     lines.append("")
     return "\n".join(lines)
 

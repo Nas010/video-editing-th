@@ -52,9 +52,7 @@ def test_cjk_hallucination_is_rejected() -> None:
 
 
 def test_repeated_latin_hallucination_is_rejected() -> None:
-    report = validate_thai_transcript(
-        make_transcript(["I'm so tired"] * 8)
-    )
+    report = validate_thai_transcript(make_transcript(["I'm so tired"] * 8))
 
     assert report.safe_for_automatic_editing is False
     codes = {issue.code for issue in report.issues}

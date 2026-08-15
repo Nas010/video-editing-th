@@ -27,17 +27,13 @@ def test_assets_index_command_serializes_slots_summary(tmp_path: Path) -> None:
         "format": {"duration": "2.0"},
     }
     fake_probe.write_text(
-        "#!/usr/bin/env python3\n"
-        "import json\n"
-        f"print(json.dumps({json.dumps(probe_payload)}))\n",
+        f"#!/usr/bin/env python3\nimport json\nprint(json.dumps({json.dumps(probe_payload)}))\n",
         encoding="utf-8",
     )
     fake_probe.chmod(0o755)
     fake_ffmpeg = tmp_path / "ffmpeg"
     fake_ffmpeg.write_text(
-        "#!/usr/bin/env python3\n"
-        "import pathlib, sys\n"
-        "pathlib.Path(sys.argv[-1]).touch()\n",
+        "#!/usr/bin/env python3\nimport pathlib, sys\npathlib.Path(sys.argv[-1]).touch()\n",
         encoding="utf-8",
     )
     fake_ffmpeg.chmod(0o755)

@@ -98,9 +98,7 @@ def validate_thai_transcript(transcript: Transcript) -> QualityReport:
         )
 
     latin_heavy_segments = [
-        segment.id
-        for segment in transcript.segments
-        if _segment_is_latin_heavy(segment)
+        segment.id for segment in transcript.segments if _segment_is_latin_heavy(segment)
     ]
     if latin_heavy_segments:
         issues.append(

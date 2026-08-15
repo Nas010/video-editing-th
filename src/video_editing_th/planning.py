@@ -38,9 +38,7 @@ def validate_edit_plan(
         quality = validate_thai_transcript(transcript)
         if not quality.safe_for_automatic_editing:
             codes = ", ".join(issue.code for issue in quality.issues) or "unknown failure"
-            errors.append(
-                f"Transcript {source_sha256[:12]} failed the Thai quality gate: {codes}."
-            )
+            errors.append(f"Transcript {source_sha256[:12]} failed the Thai quality gate: {codes}.")
 
     for clip in plan.structural_clips:
         transcript = transcripts.get(clip.source_sha256)

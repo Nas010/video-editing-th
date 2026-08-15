@@ -17,9 +17,7 @@ def test_pack_transcript_breaks_on_gap_and_keeps_thai_unspaced() -> None:
         model="test",
         words=words,
         segments=[
-            TranscriptSegment(
-                id="s0", start=0.0, end=2.7, text="", word_indices=list(range(5))
-            )
+            TranscriptSegment(id="s0", start=0.0, end=2.7, text="", word_indices=list(range(5)))
         ],
     )
 

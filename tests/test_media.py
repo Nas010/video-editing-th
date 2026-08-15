@@ -20,9 +20,7 @@ def write_fake_ffprobe(path: Path) -> None:
         "format": {"duration": "12.5", "size": "1234"},
     }
     path.write_text(
-        "#!/usr/bin/env python3\n"
-        "import json\n"
-        f"print(json.dumps({json.dumps(payload)}))\n",
+        f"#!/usr/bin/env python3\nimport json\nprint(json.dumps({json.dumps(payload)}))\n",
         encoding="utf-8",
     )
     path.chmod(0o755)

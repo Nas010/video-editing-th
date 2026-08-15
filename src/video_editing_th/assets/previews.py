@@ -26,8 +26,7 @@ def build_contact_sheet_command(
     rows = math.ceil(frame_count / columns)
     sample_rate = frame_count / duration_seconds
     filter_chain = (
-        f"fps={sample_rate:g},scale={thumbnail_width}:-2,"
-        f"tile={columns}x{rows}:padding=4:margin=4"
+        f"fps={sample_rate:g},scale={thumbnail_width}:-2,tile={columns}x{rows}:padding=4:margin=4"
     )
     return [
         ffmpeg_binary,

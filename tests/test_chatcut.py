@@ -67,9 +67,7 @@ def test_chatcut_manifest_orders_structural_caption_visual_motion_and_audio(tmp_
     structural_actions = [
         operation.action for operation in manifest.operations if operation.phase == "structure"
     ]
-    assert structural_actions == [
-        "place_source_clip"
-    ]
+    assert structural_actions == ["place_source_clip"]
     assert any(operation.action == "add_caption" for operation in manifest.operations)
     assert any(operation.action == "place_broll" for operation in manifest.operations)
     assert any(operation.action == "add_motion_effect" for operation in manifest.operations)

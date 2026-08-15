@@ -80,8 +80,7 @@ def test_skill_has_pressure_scenarios_and_no_placeholders() -> None:
         assert marker in combined
 
     deployed_text = "\n".join(
-        read(path)
-        for path in [SKILL, *sorted((SKILL_ROOT / "references").glob("*.md"))]
+        read(path) for path in [SKILL, *sorted((SKILL_ROOT / "references").glob("*.md"))]
     )
     assert "TODO" not in deployed_text
     assert "TBD" not in deployed_text

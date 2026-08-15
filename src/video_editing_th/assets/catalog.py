@@ -117,9 +117,7 @@ class AssetCatalog:
         payload = _asset_to_row(asset)
         columns = ", ".join(payload)
         placeholders = ", ".join("?" for _ in payload)
-        updates = ", ".join(
-            f"{column}=excluded.{column}" for column in payload if column != "id"
-        )
+        updates = ", ".join(f"{column}=excluded.{column}" for column in payload if column != "id")
         self._connection.execute(
             f"INSERT INTO assets ({columns}) VALUES ({placeholders}) "
             f"ON CONFLICT(id) DO UPDATE SET {updates}",
@@ -263,8 +261,6 @@ def _row_to_asset(row: sqlite3.Row) -> AssetRecord:
         use_cases=json.loads(row["use_cases_json"]),
         shot_type=row["shot_type"],
         camera_motion=row["camera_motion"],
-        contact_sheet_path=(
-            Path(row["contact_sheet_path"]) if row["contact_sheet_path"] else None
-        ),
+        contact_sheet_path=(Path(row["contact_sheet_path"]) if row["contact_sheet_path"] else None),
         indexed_at=datetime.fromisoformat(row["indexed_at"]),
     )

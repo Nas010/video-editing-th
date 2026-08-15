@@ -56,9 +56,7 @@ def parse_silencedetect(
             end = max(pending_start, float(end_match.group("end")))
             duration = max(0.0, float(end_match.group("duration")))
             if end > pending_start and duration > 0:
-                intervals.append(
-                    SilenceInterval(start=pending_start, end=end, duration=duration)
-                )
+                intervals.append(SilenceInterval(start=pending_start, end=end, duration=duration))
             pending_start = None
     if pending_start is not None and media_duration is not None and media_duration > pending_start:
         intervals.append(

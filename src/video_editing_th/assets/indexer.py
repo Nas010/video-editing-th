@@ -80,10 +80,15 @@ def index_assets(
             role = infer_asset_role(path, root)
             asset_id = existing.id if existing else _asset_id(path)
             contact_sheet = None
-            if media.has_video and media.duration_seconds > 0 and role not in {
-                AssetRole.SFX,
-                AssetRole.MUSIC,
-            }:
+            if (
+                media.has_video
+                and media.duration_seconds > 0
+                and role
+                not in {
+                    AssetRole.SFX,
+                    AssetRole.MUSIC,
+                }
+            ):
                 contact_sheet = preview_root / f"{asset_id}.jpg"
                 preview_func(
                     path,
@@ -103,8 +108,7 @@ def index_assets(
                 fps=media.fps,
                 has_audio=media.has_audio,
                 transparent=(
-                    role == AssetRole.OVERLAY
-                    and path.suffix.lower() in {".png", ".mov", ".webm"}
+                    role == AssetRole.OVERLAY and path.suffix.lower() in {".png", ".mov", ".webm"}
                 ),
                 description=existing.description if existing else "",
                 tags=existing.tags if existing else [],

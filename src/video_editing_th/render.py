@@ -57,8 +57,7 @@ def build_render_command(
         concat_inputs.append(f"[v{index}][a{index}]")
 
     filters.append(
-        "".join(concat_inputs)
-        + f"concat=n={len(plan.structural_clips)}:v=1:a=1[vcat][acat]"
+        "".join(concat_inputs) + f"concat=n={len(plan.structural_clips)}:v=1:a=1[vcat][acat]"
     )
     video_output = "vcat"
     if captions_path is not None:
