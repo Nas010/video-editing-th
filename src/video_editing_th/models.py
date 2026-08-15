@@ -1,4 +1,4 @@
-"""Canonical models for media, transcripts, decisions, and editor operations."""
+"""Canonical, versioned data contracts for the editing pipeline."""
 
 from __future__ import annotations
 
@@ -6,19 +6,19 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from itertools import pairwise
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-SCHEMA_VERSION = 1
-Sha256 = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+SCHEMA_VERSION: Literal[1] = 1
+Sha256 = str
 
 
 class CanonicalModel(BaseModel):
-    """Shared immutable schema settings for persisted artifacts."""
+    """Strict immutable base model used for persisted pipeline artifacts."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
-    schema_version: Literal[1] = 1
+    schema_version: Literal[1] = SCHEMA_VERSION
 
 
 class TimedModel(CanonicalModel):
@@ -34,83 +34,101 @@ class TimedModel(CanonicalModel):
 
 class MediaItem(CanonicalModel):
     source_path: Path
-    sha256: Sha256
+    sha256: Sha256 = Field(pattern=r"^[0-9a-f]{64}$")
     size_bytes: int = Field(ge=0)
     duration_seconds: float = Field(ge=0)
     width: int | None = Field(default=None, ge=1)
     height: int | None = Field(default=None, ge=1)
     fps: float | None = Field(default=None, gt=0)
-    has_video: bool
-    has_audio: bool
-    codec_video: str | None = None
-    codec_audio: str | None = None
-    creation_time: datetime | None = None
+    has_video: bool = True
+    has_audio: bool = True
+    video_codec: str | None = None
+    audio_codec: str | None = None
+    created_at_source: datetime | None = None
+
+
+class TranscriptWordKind(StrEnum):
+    WORD = "word"
+    AUDIO_EVENT = "audio_event"
 
 
 class TranscriptWord(TimedModel):
     text: str = Field(min_length=1)
     probability: float | None = Field(default=None, ge=0, le=1)
     speaker: str | None = None
+    kind: TranscriptWordKind = TranscriptWordKind.WORD
 
 
 class TranscriptSegment(TimedModel):
     id: str = Field(min_length=1)
-    text: str = Field(min_length=1)
-    words: list[TranscriptWord] = Field(default_factory=list)
+    text: str = ""
+    word_indices: list[int] = Field(default_factory=list)
     confidence: float | None = Field(default=None, ge=0, le=1)
     no_speech_probability: float | None = Field(default=None, ge=0, le=1)
     speaker: str | None = None
 
-    @model_validator(mode="after")
-    def validate_word_bounds(self) -> TranscriptSegment:
-        for word in self.words:
-            if word.start < self.start - 0.05 or word.end > self.end + 0.05:
-                raise ValueError("word timing must remain inside its transcript segment")
-        return self
+    @field_validator("word_indices")
+    @classmethod
+    def indices_must_be_non_negative(cls, value: list[int]) -> list[int]:
+        if any(index < 0 for index in value):
+            raise ValueError("word indices must be non-negative")
+        return value
 
 
 class Transcript(CanonicalModel):
-    media_sha256: Sha256
-    media_path: Path
-    language: str = Field(min_length=2, max_length=12)
+    media_sha256: Sha256 = Field(pattern=r"^[0-9a-f]{64}$")
+    language: str = Field(default="th", pattern=r"^[a-z]{2,3}$")
     backend: str = Field(min_length=1)
-    model: str | None = None
-    duration_seconds: float = Field(ge=0)
+    model: str = Field(min_length=1)
+    words: list[TranscriptWord] = Field(default_factory=list)
     segments: list[TranscriptSegment] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    source_path: Path | None = None
 
     @model_validator(mode="after")
-    def validate_chronology(self) -> Transcript:
-        for previous, current in pairwise(self.segments):
-            if current.start < previous.start:
-                raise ValueError("transcript segments must be chronological")
+    def validate_order_and_indices(self) -> Transcript:
+        previous_start = -1.0
+        for word in self.words:
+            if word.start < previous_start:
+                raise ValueError("transcript words must be sorted by start time")
+            previous_start = word.start
+        previous_start = -1.0
+        for segment in self.segments:
+            if segment.start < previous_start:
+                raise ValueError("transcript segments must be sorted by start time")
+            if any(index >= len(self.words) for index in segment.word_indices):
+                raise ValueError("segment references a word index outside the transcript")
+            previous_start = segment.start
         return self
 
 
-class TranscriptIssue(CanonicalModel):
+class IssueSeverity(StrEnum):
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+
+
+class QualityIssue(CanonicalModel):
     code: str = Field(min_length=1)
-    severity: Literal["warning", "error"]
+    severity: IssueSeverity
     message: str = Field(min_length=1)
-    segment_id: str | None = None
+    segment_ids: list[str] = Field(default_factory=list)
 
 
-class TranscriptQualityReport(CanonicalModel):
-    media_sha256: Sha256
-    language: str
-    thai_character_ratio: float = Field(ge=0, le=1)
-    cjk_character_count: int = Field(ge=0)
-    latin_character_ratio: float = Field(ge=0, le=1)
-    repeated_segment_count: int = Field(ge=0)
-    suspicious_non_speech_segment_count: int = Field(ge=0)
-    issues: list[TranscriptIssue] = Field(default_factory=list)
+class QualityReport(CanonicalModel):
     safe_for_automatic_editing: bool
+    score: float = Field(ge=0, le=1)
+    issues: list[QualityIssue] = Field(default_factory=list)
+    metrics: dict[str, float] = Field(default_factory=dict)
 
 
 class SilenceInterval(TimedModel):
-    duration: float = Field(ge=0)
+    duration: float = Field(gt=0)
 
     @model_validator(mode="after")
-    def derive_duration(self) -> SilenceInterval:
-        object.__setattr__(self, "duration", self.end - self.start)
+    def duration_matches_bounds(self) -> SilenceInterval:
+        if abs(self.duration - (self.end - self.start)) > 0.02:
+            raise ValueError("silence duration must match start/end bounds")
         return self
 
 
@@ -119,13 +137,13 @@ class RetakeCandidate(CanonicalModel):
     segment_ids: list[str] = Field(min_length=1)
     start: float = Field(ge=0)
     end: float = Field(gt=0)
-    text: str = Field(min_length=1)
-    complete: bool
-    confidence: float = Field(default=0, ge=0, le=1)
-    evidence: list[str] = Field(default_factory=list)
+    text: str = ""
+    completeness_score: float = Field(default=0.5, ge=0, le=1)
+    restart_score: float = Field(default=0, ge=0, le=1)
+    features: dict[str, float | str | bool] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def validate_range(self) -> RetakeCandidate:
+    def validate_bounds(self) -> RetakeCandidate:
         if self.end <= self.start:
             raise ValueError("retake candidate end must be greater than start")
         return self
@@ -148,7 +166,7 @@ class RetakeGroup(CanonicalModel):
 
 
 class RetakeAnalysis(CanonicalModel):
-    media_sha256: Sha256
+    media_sha256: Sha256 = Field(pattern=r"^[0-9a-f]{64}$")
     profile_name: str = Field(min_length=1)
     groups: list[RetakeGroup] = Field(default_factory=list)
 
@@ -167,7 +185,7 @@ class AssetRecord(CanonicalModel):
     id: str = Field(min_length=1)
     path: Path
     role: AssetRole
-    sha256: Sha256
+    sha256: Sha256 = Field(pattern=r"^[0-9a-f]{64}$")
     size_bytes: int = Field(ge=0)
     duration_seconds: float | None = Field(default=None, ge=0)
     width: int | None = Field(default=None, ge=1)
@@ -203,7 +221,7 @@ class AssetRecord(CanonicalModel):
 class ClipDecision(CanonicalModel):
     id: str = Field(min_length=1)
     source_path: Path
-    source_sha256: Sha256
+    source_sha256: Sha256 = Field(pattern=r"^[0-9a-f]{64}$")
     source_start: float = Field(ge=0)
     source_end: float = Field(gt=0)
     timeline_start: float = Field(ge=0)
