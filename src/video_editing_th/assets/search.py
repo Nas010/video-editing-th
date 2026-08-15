@@ -29,11 +29,9 @@ def search_assets(
         raise ValueError("limit must be positive")
     terms = _query_terms(query)
     candidates = _candidate_ids(catalog, terms, max(limit * 8, 40))
-    assets: Iterable[AssetRecord | None]
-    if terms:
-        assets = (catalog.get(asset_id) for asset_id in candidates)
-    else:
-        assets = catalog.all()
+    assets: Iterable[AssetRecord | None] = (
+        (catalog.get(asset_id) for asset_id in candidates) if terms else catalog.all()
+    )
 
     results: list[AssetSearchResult] = []
     for asset in assets:
