@@ -13,6 +13,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from .errors import ConfigurationError
 from .models import AssetRole
 
+DEFAULT_SOCIAL_WIDTH = 1080
+DEFAULT_SOCIAL_HEIGHT = 1920
+DEFAULT_SOCIAL_FPS = 30.0
+
 
 class StrictModel(BaseModel):
     """Shared strict immutable model configuration."""
@@ -77,13 +81,10 @@ class EditingProfile(StrictModel):
 
 
 class AssetLibraryConfig(StrictModel):
-    """Machine-local creative asset folders and persistent index locations."""
+    """Machine-local visual folders and persistent asset-index locations."""
 
     broll: Path | None = None
     overlays: Path | None = None
-    sfx: Path | None = None
-    music: Path | None = None
-    transitions: Path | None = None
     backgrounds: Path | None = None
     catalog_path: Path = Field(default_factory=lambda: _default_data_root() / "assets.db")
     preview_dir: Path = Field(default_factory=lambda: _default_cache_root() / "asset-previews")
@@ -91,9 +92,6 @@ class AssetLibraryConfig(StrictModel):
     @field_validator(
         "broll",
         "overlays",
-        "sfx",
-        "music",
-        "transitions",
         "backgrounds",
         "catalog_path",
         "preview_dir",
@@ -107,35 +105,19 @@ class AssetLibraryConfig(StrictModel):
         pairs = (
             (AssetRole.BROLL, self.broll),
             (AssetRole.OVERLAY, self.overlays),
-            (AssetRole.SFX, self.sfx),
-            (AssetRole.MUSIC, self.music),
-            (AssetRole.TRANSITION, self.transitions),
             (AssetRole.BACKGROUND, self.backgrounds),
         )
         return {role: path for role, path in pairs if path is not None}
 
 
 class WorkflowDefaults(StrictModel):
-    """Default Codex mission settings applied unless a project overrides them."""
+    """Reusable defaults that are not expected to change per project."""
 
     default_profile: str = Field(default="thai-fast-reel", min_length=1)
     editor_backend: Literal["chatcut"] = "chatcut"
     use_broll: bool = True
     use_overlays: bool = True
-    use_sfx: bool = True
-    use_music: bool = True
-    use_transitions: bool = True
     use_motion: bool = True
-    captions_enabled: bool = True
-    caption_language: str = Field(default="th", pattern=r"^[a-z]{2,3}$")
-
-
-class OutputDefaults(StrictModel):
-    """Default social-video composition settings."""
-
-    width: int = Field(default=1080, ge=2, le=16_384)
-    height: int = Field(default=1920, ge=2, le=16_384)
-    fps: float = Field(default=30.0, ge=1, le=240)
 
 
 class AppConfig(StrictModel):
@@ -144,7 +126,6 @@ class AppConfig(StrictModel):
     asset_root: Path | None = None
     assets: AssetLibraryConfig = Field(default_factory=AssetLibraryConfig)
     workflow: WorkflowDefaults = Field(default_factory=WorkflowDefaults)
-    output: OutputDefaults = Field(default_factory=OutputDefaults)
     model_root: Path = Path("~/.cache/video-editing-th/models")
     ffmpeg_binary: str = "ffmpeg"
     ffprobe_binary: str = "ffprobe"
@@ -167,7 +148,7 @@ class AppConfig(StrictModel):
             raw = {}
         if not isinstance(raw, dict):
             raise ConfigurationError(f"Configuration {resolved} must contain a YAML object")
-        return cls.model_validate(raw)
+        return cls.model_validate(_migrate_deprecated_configuration(raw))
 
     def save(self, path: Path | None = None) -> Path:
         """Atomically persist this configuration and return its resolved path."""
@@ -222,6 +203,35 @@ def _default_cache_root() -> Path:
     xdg_root = os.environ.get("XDG_CACHE_HOME")
     root = Path(xdg_root).expanduser() if xdg_root else Path("~/.cache").expanduser()
     return (root / "video-editing-th").resolve(strict=False)
+
+
+def _migrate_deprecated_configuration(raw: dict[str, Any]) -> dict[str, Any]:
+    """Ignore fields written by the earlier over-configurable wizard."""
+
+    migrated = dict(raw)
+    migrated.pop("output", None)
+
+    assets = migrated.get("assets")
+    if isinstance(assets, dict):
+        migrated_assets = dict(assets)
+        for key in ("sfx", "music", "transitions"):
+            migrated_assets.pop(key, None)
+        migrated["assets"] = migrated_assets
+
+    workflow = migrated.get("workflow")
+    if isinstance(workflow, dict):
+        migrated_workflow = dict(workflow)
+        for key in (
+            "use_sfx",
+            "use_music",
+            "use_transitions",
+            "captions_enabled",
+            "caption_language",
+        ):
+            migrated_workflow.pop(key, None)
+        migrated["workflow"] = migrated_workflow
+
+    return migrated
 
 
 def _expand_path(value: Any) -> Any:
