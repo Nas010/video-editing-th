@@ -154,9 +154,7 @@ def models_list(
     table.add_column("Notes")
     for name, spec in MODEL_SPECS.items():
         size = (
-            f"{spec.disk_mib / 1024:.1f} GiB"
-            if spec.disk_mib >= 1024
-            else f"{spec.disk_mib} MiB"
+            f"{spec.disk_mib / 1024:.1f} GiB" if spec.disk_mib >= 1024 else f"{spec.disk_mib} MiB"
         )
         table.add_row(name, size, "yes" if name in present else "no", spec.notes)
     console.print(table)
