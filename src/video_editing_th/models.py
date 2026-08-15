@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import StrEnum
+from itertools import pairwise
 from pathlib import Path
 from typing import Any, Literal
 
@@ -281,9 +282,8 @@ class CreativeOperation(CanonicalModel):
             CreativeOperationKind.OVERLAY,
             CreativeOperationKind.SFX,
         }
-        if self.kind in asset_kinds:
-            if self.asset_id is None and self.asset_path is None:
-                raise ValueError("asset operation requires asset_id or asset_path")
+        if self.kind in asset_kinds and self.asset_id is None and self.asset_path is None:
+            raise ValueError("asset operation requires asset_id or asset_path")
         return self
 
 
@@ -299,11 +299,11 @@ class EditPlan(CanonicalModel):
     @model_validator(mode="after")
     def validate_timeline(self) -> EditPlan:
         ordered = sorted(self.structural_clips, key=lambda clip: clip.timeline_start)
-        for previous, current in zip(ordered, ordered[1:], strict=False):
+        for previous, current in pairwise(ordered):
             if current.timeline_start < previous.timeline_end - 1e-6:
                 raise ValueError("structural clips overlap on the output timeline")
         ordered_captions = sorted(self.captions, key=lambda cue: cue.start)
-        for previous, current in zip(ordered_captions, ordered_captions[1:], strict=False):
+        for previous, current in pairwise(ordered_captions):
             if current.start < previous.start:
                 raise ValueError("captions must be ordered")
         return self

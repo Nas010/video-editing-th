@@ -7,7 +7,6 @@ from video_editing_th.cli import app
 from video_editing_th.io import read_model, write_model_atomic
 from video_editing_th.models import ClipDecision, EditPlan, ProjectManifest
 
-
 runner = CliRunner()
 
 
@@ -194,93 +193,31 @@ def test_captions_build_command_writes_updated_plan(tmp_path: Path) -> None:
             "build",
             str(plan_path),
             "--transcripts",
-            str(transcript_dir),
-            "--profile",
-            str(profile),
-            "--output",
-            str(output),
-        ],
-    )
+            str(transcript_diŠKˆ‹K\›Ùš[H‹ˆİŠ›Ùš[JKˆ‹K[İ]]‹ˆİŠİ]]
+KˆKˆ
+B‚ˆ\ÜÙ\™\İ[™^]ØÛÙHOH™\İ[œİİ]ˆ\]YH™XYÛ[Ù[
+İ]]Y][ŠBˆ\ÜÙ\ØİYK^›ÜˆİYH[ˆ\]Y˜Ø\[Ûœ×HOHÈ¸.*¸.)ø.,x.*¸.%8.-x.!8.(ø.,x.&ˆ—B‚‚™Yˆ\İÛØØ]WÜÚÚ[ÜÛİ\˜ÙWÜİ\Ü×İÚY[Ù]WÙš[\Ê\Ü]ˆ]
+HOˆ›Û™N‚ˆœ›ÛHšY[×ÙY][™×İœÚÚ[Ú[œİ[[\ÜØØ]WÜÚÚ[ÜÛİ\˜ÙB‚ˆ[œİ[YH\Ü]ÈœÚ\™HˆÈšY[ËYY][™Ë]ˆÈœÚÚ[‚ˆ[œİ[Y›ZÙ\Š\™[ÏUYJBˆ
+[œİ[YÈ”ÒÒS›YŠKÜš]Wİ^
+ˆ‹KKW›˜[YNˆšY[ËYY][™Ë]™\ØÜš\[Ûˆ\ÙHÚ[ˆ\İ[™Ë—‹KKWˆ‹ˆ[˜ÛÙ[™ÏH]‹N‹ˆ
+B‚ˆØØ]YHØØ]WÜÚÚ[ÜÛİ\˜ÙJˆ™\ÜÚ]ÜWÜ›Ûİ]\Ü]È››İXKXÚXÚÛİ]‹ˆ[œİ[Ü™Yš^]\Ü]ˆ
+B‚ˆ\ÜÙ\ØØ]YOH[œİ[Y‚‚™Yˆ\İØ\ÜÙ]×Ú[™^ØÛÛ[X[™ÜÙ\šX[^™\×ÜÛİ×Üİ[[X\J\Ü]ˆ]
+HOˆ›Û™N‚ˆ\ÜÙ]Ü›ÛİH\Ü]È˜\ÜÙ]È‚ˆ
+\ÜÙ]Ü›ÛİÈ˜œ›ÛŠK›ZÙ\Š\™[ÏUYJBˆ
+\ÜÙ]Ü›ÛİÈ˜œ›ÛˆÈ˜Û\›[İˆŠKÜš]WØ]\Êˆ˜\ÜÙ]ŠBˆ˜ZÙWÜ›Ø™HH\Ü]È™™œ›Ø™H‚ˆ›Ø™WÜ^[ØYHÂˆœİ™X[\ÈˆÂˆÂˆ˜ÛÙX×İ\HˆšY[È‹ˆ˜ÛÙX×Û˜[YHˆš‹ˆÚYˆLˆšZYÚˆNLŒˆ˜]™×Ùœ˜[YWÜ˜]HˆŒÌÌH‹ˆKˆÈ˜ÛÙX×İ\Hˆ˜]Y[È‹˜ÛÙX×Û˜[YHˆ˜XXÈŸKˆKˆ™›Ü›X]ˆÈ™\˜][ÛˆˆŒ‹ŒŸKˆBˆ˜ZÙWÜ›Ø™KÜš]Wİ^
+ˆˆÈKİ\Ü‹Øš[‹Ù[ˆ]ÛŒ×ˆ‚ˆš[\ÜœÛÛ—ˆ‚ˆˆœš[
+œÛÛ‹™[\ÊÚœÛÛ‹™[\Ê›Ø™WÜ^[ØY
+_JJWˆ‹ˆ[˜ÛÙ[™ÏH]‹N‹ˆ
+Bˆ˜ZÙWÜ›Ø™K˜Ú[Ù
+ÍÍMJBˆ˜ZÙWÙ™›\YÈH\Ü]È™™›\YÈ‚ˆ˜ZÙWÙ™›\YËÜš]Wİ^
+ˆˆÈKİ\Ü‹Øš[‹Ù[ˆ]ÛŒ×ˆ‚ˆš[\Ü]X‹Ş\×ˆ‚ˆœ]X‹”]
+Ş\Ë˜\™İ–ËLWJKİXÚ
 
-    assert result.exit_code == 0, result.stdout
-    updated = read_model(output, EditPlan)
-    assert [cue.text for cue in updated.captions] == ["à¸ªà¸§à¸±à¸ªà¸”à¸µà¸„à¸£à¸±à¸š"]
-
-
-def test_locate_skill_source_supports_wheel_data_files(tmp_path: Path) -> None:
-    from video_editing_th.skill_install import locate_skill_source
-
-    installed = tmp_path / "share" / "video-editing-th" / "skill"
-    installed.mkdir(parents=True)
-    (installed / "SKILL.md").write_text(
-        "---\nname: video-editing-th\ndescription: Use when testing.\n---\n",
-        encoding="utf-8",
-    )
-
-    located = locate_skill_source(
-        repository_root=tmp_path / "not-a-checkout",
-        install_prefix=tmp_path,
-    )
-
-    assert located == installed
-
-
-def test_assets_index_command_serializes_slots_summary(tmp_path: Path) -> None:
-    asset_root = tmp_path / "assets"
-    (asset_root / "broll").mkdir(parents=True)
-    (asset_root / "broll" / "clip.mov").write_bytes(b"asset")
-    fake_probe = tmp_path / "ffprobe"
-    probe_payload = {
-        "streams": [
-            {
-                "codec_type": "video",
-                "codec_name": "h264",
-                "width": 1080,
-                "height": 1920,
-                "avg_frame_rate": "30/1",
-            },
-            {"codec_type": "audio", "codec_name": "aac"},
-        ],
-        "format": {"duration": "2.0"},
-    }
-    fake_probe.write_text(
-        "#!/usr/bin/env python3\n"
-        "import json\n"
-        f"print(json.dumps({json.dumps(probe_payload)}))\n",
-        encoding="utf-8",
-    )
-    fake_probe.chmod(0o755)
-    fake_ffmpeg = tmp_path / "ffmpeg"
-    fake_ffmpeg.write_text(
-        "#!/usr/bin/env python3\n"
-        "import pathlib, sys\n"
-        "pathlib.Path(sys.argv[-1]).touch()\n",
-        encoding="utf-8",
-    )
-    fake_ffmpeg.chmod(0o755)
-    config = tmp_path / "config.yaml"
-    config.write_text(
-        f"ffprobe_binary: {fake_probe}\nffmpeg_binary: {fake_ffmpeg}\n",
-        encoding="utf-8",
-    )
-    catalog = tmp_path / "catalog.db"
-    previews = tmp_path / "previews"
-
-    result = runner.invoke(
-        app,
-        [
-            "assets",
-            "index",
-            str(asset_root),
-            "--catalog",
-            str(catalog),
-            "--preview-dir",
-            str(previews),
-            "--config",
-            str(config),
-        ],
-    )
-
-    assert result.exit_code == 0, result.stdout
-    payload = json.loads(result.stdout)
-    assert payload["indexed"] == 1
+Wˆ‹ˆ[˜ÛÙ[™ÏH]‹N‹ˆ
+Bˆ˜ZÙWÙ™›\YË˜Ú[Ù
+ÍÍMJBˆÛÛ™šYÈH\Ü]È˜ÛÛ™šYËX[[‚ˆÛÛ™šYËÜš]Wİ^
+ˆˆ™™œ›Ø™WØš[˜\NˆÙ˜ZÙWÜ›Ø™_W™™›\Y×Øš[˜\NˆÙ˜ZÙWÙ™›\YßWˆ‹ˆ[˜ÛÙ[™ÏH]‹N‹ˆ
+BˆØ][ÙÈH\Ü]È˜Ø][ÙË™ˆ‚ˆ™]šY]ÜÈH\Ü]Èœ™]šY]ÜÈ‚‚ˆ™\İ[H[›™\‹š[›ÚÙJˆ\ˆÂˆ˜\ÜÙ]È‹ˆš[™^‹ˆİŠ\ÜÙ]Ü›Ûİ
+Kˆ‹KXØ][ÙÈ‹ˆİŠØ][ÙÊKˆ‹K\™]šY]ËY\ˆ‹ˆİŠ™]šY]ÜÊKˆ‹KXÛÛ™šYÈ‹ˆİŠÛÛ™šYÊKˆKˆ
+B‚ˆ\ÜÙ\™\İ[™^]ØÛÙHOH™\İ[œİİ]ˆ^[ØYHœÛÛ‹›ØYÊ™\İ[œİİ]
+Bˆ\ÜÙ\^[ØYÈš[™^Y—HOHB

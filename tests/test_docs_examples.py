@@ -7,7 +7,6 @@ from typer.testing import CliRunner
 
 from video_editing_th.cli import app
 
-
 ROOT = Path(__file__).resolve().parents[1]
 runner = CliRunner()
 

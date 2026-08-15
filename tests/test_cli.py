@@ -2,7 +2,6 @@ from typer.testing import CliRunner
 
 from video_editing_th.cli import app
 
-
 runner = CliRunner()
 
 
