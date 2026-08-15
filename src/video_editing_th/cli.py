@@ -18,7 +18,14 @@ from .asr_models import model_path as whisper_model_path
 from .assets import AssetCatalog, index_asset_folders, index_assets, search_assets
 from .captions import build_caption_cues, build_srt
 from .chatcut import build_chatcut_execution_manifest
-from .config import AppConfig, EditingProfile, default_config_path
+from .config import (
+    DEFAULT_SOCIAL_FPS,
+    DEFAULT_SOCIAL_HEIGHT,
+    DEFAULT_SOCIAL_WIDTH,
+    AppConfig,
+    EditingProfile,
+    default_config_path,
+)
 from .doctor import run_doctor
 from .io import read_model, write_model_atomic
 from .media import inventory_folder, probe_media
@@ -50,7 +57,7 @@ app = typer.Typer(
 config_app = typer.Typer(help="Inspect the one-time machine configuration.", no_args_is_help=True)
 project_app = typer.Typer(help="Create and analyze footage projects.", no_args_is_help=True)
 assets_app = typer.Typer(
-    help="Index and search reusable B-roll, overlays, and SFX.",
+    help="Index and search reusable B-roll, overlays, and backgrounds.",
     no_args_is_help=True,
 )
 models_app = typer.Typer(
@@ -86,32 +93,16 @@ def configure_command(
     non_interactive: Annotated[bool, typer.Option("--non-interactive")] = False,
     broll: Annotated[Path | None, typer.Option("--broll")] = None,
     overlays: Annotated[Path | None, typer.Option("--overlays")] = None,
-    sfx: Annotated[Path | None, typer.Option("--sfx")] = None,
-    music: Annotated[Path | None, typer.Option("--music")] = None,
-    transitions: Annotated[Path | None, typer.Option("--transitions")] = None,
     backgrounds: Annotated[Path | None, typer.Option("--backgrounds")] = None,
     profile: Annotated[str | None, typer.Option("--profile")] = None,
-    width: Annotated[int | None, typer.Option("--width", min=2)] = None,
-    height: Annotated[int | None, typer.Option("--height", min=2)] = None,
-    fps: Annotated[float | None, typer.Option("--fps", min=1)] = None,
-    captions: Annotated[
-        bool | None,
-        typer.Option("--captions/--no-captions", help="Enable or disable Thai captions."),
-    ] = None,
     use_broll: Annotated[bool | None, typer.Option("--use-broll/--no-use-broll")] = None,
     use_overlays: Annotated[
         bool | None,
         typer.Option("--use-overlays/--no-use-overlays"),
     ] = None,
-    use_sfx: Annotated[bool | None, typer.Option("--use-sfx/--no-use-sfx")] = None,
-    use_music: Annotated[bool | None, typer.Option("--use-music/--no-use-music")] = None,
-    use_transitions: Annotated[
-        bool | None,
-        typer.Option("--use-transitions/--no-use-transitions"),
-    ] = None,
     use_motion: Annotated[bool | None, typer.Option("--use-motion/--no-use-motion")] = None,
 ) -> None:
-    """Create or update the one-time machine-local editing configuration."""
+    """Create or update the one-time machine-local visual-asset configuration."""
 
     destination = _config_destination(config_path)
     current = AppConfig.load(destination)
@@ -125,27 +116,11 @@ def configure_command(
             overlays if overlays is not None else current.assets.overlays,
             "Overlay/graphics folder",
         )
-        selected_sfx = _resolve_optional_directory(
-            sfx if sfx is not None else current.assets.sfx,
-            "Sound-effects folder",
-        )
-        selected_music = _resolve_optional_directory(
-            music if music is not None else current.assets.music,
-            "Music folder",
-        )
-        selected_transitions = _resolve_optional_directory(
-            transitions if transitions is not None else current.assets.transitions,
-            "Transitions folder",
-        )
         selected_backgrounds = _resolve_optional_directory(
             backgrounds if backgrounds is not None else current.assets.backgrounds,
             "Backgrounds folder",
         )
         selected_profile = profile or current.workflow.default_profile
-        selected_width = width or current.output.width
-        selected_height = height or current.output.height
-        selected_fps = fps or current.output.fps
-        selected_captions = captions if captions is not None else current.workflow.captions_enabled
     else:
         selected_broll = _selected_or_prompted_directory(
             broll,
@@ -157,21 +132,6 @@ def configure_command(
             current.assets.overlays,
             "Overlay/graphics folder",
         )
-        selected_sfx = _selected_or_prompted_directory(
-            sfx,
-            current.assets.sfx,
-            "Sound-effects folder",
-        )
-        selected_music = _selected_or_prompted_directory(
-            music,
-            current.assets.music,
-            "Music folder",
-        )
-        selected_transitions = _selected_or_prompted_directory(
-            transitions,
-            current.assets.transitions,
-            "Transitions folder",
-        )
         selected_backgrounds = _selected_or_prompted_directory(
             backgrounds,
             current.assets.backgrounds,
@@ -181,62 +141,25 @@ def configure_command(
             "Default editing profile",
             default=current.workflow.default_profile,
         )
-        selected_width = width or typer.prompt(
-            "Output width",
-            default=current.output.width,
-            type=int,
-        )
-        selected_height = height or typer.prompt(
-            "Output height",
-            default=current.output.height,
-            type=int,
-        )
-        selected_fps = fps or typer.prompt(
-            "Output frame rate",
-            default=current.output.fps,
-            type=float,
-        )
-        selected_captions = (
-            captions
-            if captions is not None
-            else typer.confirm(
-                "Enable Thai captions",
-                default=current.workflow.captions_enabled,
-            )
-        )
 
     assets = current.assets.model_copy(
         update={
             "broll": selected_broll,
             "overlays": selected_overlays,
-            "sfx": selected_sfx,
-            "music": selected_music,
-            "transitions": selected_transitions,
             "backgrounds": selected_backgrounds,
         }
     )
     workflow = current.workflow.model_copy(
         update={
             "default_profile": selected_profile,
-            "captions_enabled": selected_captions,
             "use_broll": use_broll if use_broll is not None else current.workflow.use_broll,
             "use_overlays": (
                 use_overlays if use_overlays is not None else current.workflow.use_overlays
             ),
-            "use_sfx": use_sfx if use_sfx is not None else current.workflow.use_sfx,
-            "use_music": use_music if use_music is not None else current.workflow.use_music,
-            "use_transitions": (
-                use_transitions if use_transitions is not None else current.workflow.use_transitions
-            ),
             "use_motion": (use_motion if use_motion is not None else current.workflow.use_motion),
         }
     )
-    output = current.output.model_copy(
-        update={"width": selected_width, "height": selected_height, "fps": selected_fps}
-    )
-    configured = current.model_copy(
-        update={"assets": assets, "workflow": workflow, "output": output}
-    )
+    configured = current.model_copy(update={"assets": assets, "workflow": workflow})
     written = configured.save(destination)
     typer.echo(f"Saved configuration: {written}")
 
@@ -514,7 +437,7 @@ def assets_index_configured(
     config_path: Annotated[Path | None, typer.Option("--config")] = None,
     strict: Annotated[bool, typer.Option("--strict/--continue-on-error")] = True,
 ) -> None:
-    """Index every role-specific folder saved by the one-time configuration."""
+    """Index every visual folder saved by the one-time configuration."""
 
     config = AppConfig.load(config_path)
     folders = config.assets.configured_folders()
@@ -539,7 +462,7 @@ def assets_index_configured(
             )
         else:
             raise typer.BadParameter(
-                "No asset folders are configured. Run 'video-editing-th configure' first."
+                "No visual asset folders are configured. Run 'video-editing-th configure' first."
             )
     typer.echo(json.dumps(asdict(summary), ensure_ascii=False, default=list, indent=2))
 
@@ -672,17 +595,15 @@ def chatcut_export(
     width: Annotated[int | None, typer.Option("--width", min=2)] = None,
     height: Annotated[int | None, typer.Option("--height", min=2)] = None,
     fps: Annotated[float | None, typer.Option("--fps", min=1)] = None,
-    config_path: Annotated[Path | None, typer.Option("--config")] = None,
 ) -> None:
     """Export ordered operations that Codex executes through ChatCut MCP/browser."""
 
-    config = AppConfig.load(config_path)
     plan = read_model(plan_path, EditPlan)
     manifest = build_chatcut_execution_manifest(
         plan,
-        composition_width=width or config.output.width,
-        composition_height=height or config.output.height,
-        fps=fps or config.output.fps,
+        composition_width=width if width is not None else DEFAULT_SOCIAL_WIDTH,
+        composition_height=height if height is not None else DEFAULT_SOCIAL_HEIGHT,
+        fps=fps if fps is not None else DEFAULT_SOCIAL_FPS,
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(manifest.model_dump_json(indent=2) + "\n", encoding="utf-8")
