@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import os
+import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from .errors import ConfigurationError
+from .models import AssetRole
 
 
 class StrictModel(BaseModel):
@@ -67,17 +70,81 @@ class EditingProfile(StrictModel):
 
     @classmethod
     def load(cls, path: Path) -> EditingProfile:
-        try:
-            raw = yaml.safe_load(path.read_text(encoding="utf-8"))
-        except (OSError, yaml.YAMLError) as exc:
-            raise ConfigurationError(f"Could not load profile {path}: {exc}") from exc
+        raw = _read_yaml(path, label="profile")
         if not isinstance(raw, dict):
             raise ConfigurationError(f"Profile {path} must contain a YAML object")
         return cls.model_validate(raw)
 
 
+class AssetLibraryConfig(StrictModel):
+    """Machine-local creative asset folders and persistent index locations."""
+
+    broll: Path | None = None
+    overlays: Path | None = None
+    sfx: Path | None = None
+    music: Path | None = None
+    transitions: Path | None = None
+    backgrounds: Path | None = None
+    catalog_path: Path = Field(default_factory=lambda: _default_data_root() / "assets.db")
+    preview_dir: Path = Field(default_factory=lambda: _default_cache_root() / "asset-previews")
+
+    @field_validator(
+        "broll",
+        "overlays",
+        "sfx",
+        "music",
+        "transitions",
+        "backgrounds",
+        "catalog_path",
+        "preview_dir",
+        mode="before",
+    )
+    @classmethod
+    def expand_paths(cls, value: Any) -> Any:
+        return _expand_path(value)
+
+    def configured_folders(self) -> dict[AssetRole, Path]:
+        pairs = (
+            (AssetRole.BROLL, self.broll),
+            (AssetRole.OVERLAY, self.overlays),
+            (AssetRole.SFX, self.sfx),
+            (AssetRole.MUSIC, self.music),
+            (AssetRole.TRANSITION, self.transitions),
+            (AssetRole.BACKGROUND, self.backgrounds),
+        )
+        return {role: path for role, path in pairs if path is not None}
+
+
+class WorkflowDefaults(StrictModel):
+    """Default Codex mission settings applied unless a project overrides them."""
+
+    default_profile: str = Field(default="thai-fast-reel", min_length=1)
+    editor_backend: Literal["chatcut"] = "chatcut"
+    use_broll: bool = True
+    use_overlays: bool = True
+    use_sfx: bool = True
+    use_music: bool = True
+    use_transitions: bool = True
+    use_motion: bool = True
+    captions_enabled: bool = True
+    caption_language: str = Field(default="th", pattern=r"^[a-z]{2,3}$")
+
+
+class OutputDefaults(StrictModel):
+    """Default social-video composition settings."""
+
+    width: int = Field(default=1080, ge=2, le=16_384)
+    height: int = Field(default=1920, ge=2, le=16_384)
+    fps: float = Field(default=30.0, ge=1, le=240)
+
+
 class AppConfig(StrictModel):
+    """Machine-local application configuration loaded outside the repository."""
+
     asset_root: Path | None = None
+    assets: AssetLibraryConfig = Field(default_factory=AssetLibraryConfig)
+    workflow: WorkflowDefaults = Field(default_factory=WorkflowDefaults)
+    output: OutputDefaults = Field(default_factory=OutputDefaults)
     model_root: Path = Path("~/.cache/video-editing-th/models")
     ffmpeg_binary: str = "ffmpeg"
     ffprobe_binary: str = "ffprobe"
@@ -88,20 +155,83 @@ class AppConfig(StrictModel):
     @field_validator("asset_root", "model_root", mode="before")
     @classmethod
     def expand_paths(cls, value: Any) -> Any:
-        if value is None:
-            return None
-        return Path(value).expanduser().resolve(strict=False)
+        return _expand_path(value)
 
     @classmethod
     def load(cls, path: Path | None = None) -> AppConfig:
-        if path is None:
+        resolved = (path or default_config_path()).expanduser().resolve(strict=False)
+        if not resolved.is_file():
             return cls()
-        try:
-            raw = yaml.safe_load(path.read_text(encoding="utf-8"))
-        except (OSError, yaml.YAMLError) as exc:
-            raise ConfigurationError(f"Could not load configuration {path}: {exc}") from exc
+        raw = _read_yaml(resolved, label="configuration")
         if raw is None:
             raw = {}
         if not isinstance(raw, dict):
-            raise ConfigurationError(f"Configuration {path} must contain a YAML object")
+            raise ConfigurationError(f"Configuration {resolved} must contain a YAML object")
         return cls.model_validate(raw)
+
+    def save(self, path: Path | None = None) -> Path:
+        """Atomically persist this configuration and return its resolved path."""
+
+        destination = (path or default_config_path()).expanduser().resolve(strict=False)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        payload = yaml.safe_dump(
+            self.model_dump(mode="json", exclude_none=True),
+            allow_unicode=True,
+            sort_keys=False,
+        )
+        temporary_path: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=destination.parent,
+                prefix=f".{destination.name}.",
+                suffix=".tmp",
+                delete=False,
+            ) as temporary:
+                temporary.write(payload)
+                temporary.flush()
+                os.fsync(temporary.fileno())
+                temporary_path = Path(temporary.name)
+            temporary_path.replace(destination)
+        except OSError as exc:
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
+            raise ConfigurationError(f"Could not save configuration {destination}: {exc}") from exc
+        return destination
+
+
+def default_config_path() -> Path:
+    """Resolve the active per-user configuration path."""
+
+    explicit = os.environ.get("VIDEO_EDITING_TH_CONFIG")
+    if explicit:
+        return Path(explicit).expanduser().resolve(strict=False)
+    xdg_root = os.environ.get("XDG_CONFIG_HOME")
+    root = Path(xdg_root).expanduser() if xdg_root else Path("~/.config").expanduser()
+    return (root / "video-editing-th" / "config.yaml").resolve(strict=False)
+
+
+def _default_data_root() -> Path:
+    xdg_root = os.environ.get("XDG_DATA_HOME")
+    root = Path(xdg_root).expanduser() if xdg_root else Path("~/.local/share").expanduser()
+    return (root / "video-editing-th").resolve(strict=False)
+
+
+def _default_cache_root() -> Path:
+    xdg_root = os.environ.get("XDG_CACHE_HOME")
+    root = Path(xdg_root).expanduser() if xdg_root else Path("~/.cache").expanduser()
+    return (root / "video-editing-th").resolve(strict=False)
+
+
+def _expand_path(value: Any) -> Any:
+    if value is None or isinstance(value, Path):
+        return value.expanduser().resolve(strict=False) if isinstance(value, Path) else None
+    return Path(value).expanduser().resolve(strict=False)
+
+
+def _read_yaml(path: Path, *, label: str) -> Any:
+    try:
+        return yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        raise ConfigurationError(f"Could not load {label} {path}: {exc}") from exc
