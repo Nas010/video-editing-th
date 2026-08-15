@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+.venv/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+config.local.yaml
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+
+# Runtime media and generated project output
+**/edit/
+*.mov
+*.mp4
+*.mkv
+*.avi
+*.wav
+*.m4a
+*.mp3
+*.webm
+*.srt
+*.ass
+*.sqlite
+*.sqlite3
+*.db
+models/
+asset_previews/
