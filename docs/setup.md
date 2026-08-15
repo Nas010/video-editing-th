@@ -77,7 +77,7 @@ The full unquantized `large-v3` model is usable on Apple Silicon, but on an 8 GB
 If the Python/project setup already exists:
 
 ```bash
-scripts/setup_whisper_cpp_macos.sh --model auto --install-system
+bash scripts/setup_whisper_cpp_macos.sh --model auto --install-system
 ```
 
 The helper pins whisper.cpp `v1.9.2` by default, builds `whisper-cli`, links it under `~/.local/bin`, and downloads the selected model. External model weights are never committed to this repository.
