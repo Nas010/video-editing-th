@@ -1,0 +1,23 @@
+name: thai-fast-reel
+version: 1
+language: th
+pacing:
+  intra_thought_target_ms: 90
+  sentence_target_ms: 240
+  topic_target_ms: 420
+  word_handle_ms: 85
+  maximum_audio_overlap_ms: 25
+retakes:
+  maximum_gap_seconds: 15
+  similarity_threshold: 0.72
+  prefer_latest_complete: true
+  preserve_uncertain: true
+creative:
+  maximum_punch_ins_per_minute: 5
+  maximum_broll_per_minute: 4
+  maximum_sfx_per_minute: 6
+  maximum_sfx_gain_db: -8
+captions:
+  enabled: true
+  max_characters_per_card: 28
+  max_lines: 2

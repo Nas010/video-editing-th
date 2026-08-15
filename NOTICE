@@ -1,0 +1,15 @@
+video-editing-th
+Copyright (c) 2026 Nas010 and contributors
+
+This project incorporates and substantially adapts concepts and portions of:
+
+  browser-use/video-use
+  https://github.com/browser-use/video-use
+  Upstream snapshot: 92c2b34e44c205cbc2acae7f6ca7c1c219d5dd66
+  Copyright (c) 2026 Browser Use
+  Licensed under the MIT License.
+
+The retained upstream license text appears in THIRD_PARTY.md. Modifications
+include provider-independent Thai transcription, Unicode quality gates,
+canonical schemas, conservative retake analysis, a persistent asset catalog,
+validated edit planning, local previews, and Codex-controlled ChatCut execution.

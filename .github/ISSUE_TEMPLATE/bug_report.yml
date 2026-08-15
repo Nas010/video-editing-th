@@ -1,0 +1,57 @@
+name: Bug report
+description: Report a reproducible pipeline, CLI, schema, or documentation defect.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not upload private footage, transcripts, credentials, or absolute personal paths.
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: v0.1.0 or commit SHA
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Setup/doctor
+        - Thai transcription/quality gate
+        - Retake analysis
+        - Asset catalog/search
+        - Edit plan/captions
+        - Rendering
+        - ChatCut execution
+        - Codex skill
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Use synthetic or redacted fixtures and include the exact command.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and logs
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed credentials, private media, private transcripts, and personal absolute paths.
+          required: true
