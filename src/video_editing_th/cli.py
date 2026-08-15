@@ -12,6 +12,13 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from .asr_models import (
+    MODEL_SPECS,
+    detect_hardware,
+    installed_models,
+    model_path as whisper_model_path,
+    recommend_whisper_model,
+)
 from .assets import AssetCatalog, index_assets, search_assets
 from .captions import build_caption_cues, build_srt
 from .chatcut import build_chatcut_execution_manifest
@@ -49,6 +56,10 @@ assets_app = typer.Typer(
     help="Index and search reusable B-roll, overlays, and SFX.",
     no_args_is_help=True,
 )
+models_app = typer.Typer(
+    help="Inspect hardware and choose local whisper.cpp ASR models.",
+    no_args_is_help=True,
+)
 plan_app = typer.Typer(help="Validate canonical edit plans.", no_args_is_help=True)
 captions_app = typer.Typer(
     help="Build Thai captions from validated transcripts.",
@@ -63,6 +74,7 @@ skill_app = typer.Typer(help="Install the repository Codex skill.", no_args_is_h
 
 app.add_typer(project_app, name="project")
 app.add_typer(assets_app, name="assets")
+app.add_typer(models_app, name="models")
 app.add_typer(plan_app, name="plan")
 app.add_typer(captions_app, name="captions")
 app.add_typer(render_app, name="render")
@@ -96,6 +108,59 @@ def doctor_command(
     console.print("READY" if report.ready else "NOT READY")
     if not report.ready:
         raise typer.Exit(code=1)
+
+
+@models_app.command("recommend")
+def models_recommend(
+    name_only: Annotated[
+        bool,
+        typer.Option("--name-only", help="Print only the recommended model name."),
+    ] = False,
+) -> None:
+    """Recommend a multilingual whisper.cpp model for this machine."""
+
+    hardware = detect_hardware()
+    recommendation = recommend_whisper_model(hardware)
+    if name_only:
+        typer.echo(recommendation.default_model)
+        return
+
+    table = Table(title="Local Thai ASR recommendation")
+    table.add_column("Item")
+    table.add_column("Value")
+    table.add_row("OS", hardware.os_name)
+    table.add_row("Architecture", hardware.architecture)
+    table.add_row(
+        "Memory",
+        f"{hardware.memory_gib:.1f} GiB" if hardware.memory_gib is not None else "unknown",
+    )
+    table.add_row("Default model", recommendation.default_model)
+    table.add_row("Accuracy mode", recommendation.accuracy_model)
+    table.add_row(
+        "Full large-v3 recommended",
+        "yes" if recommendation.full_large_v3_recommended else "no",
+    )
+    table.add_row("Why", recommendation.rationale)
+    console.print(table)
+
+
+@models_app.command("list")
+def models_list(
+    config_path: Annotated[Path | None, typer.Option("--config")] = None,
+) -> None:
+    """List supported local whisper.cpp models and installed cache state."""
+
+    config = AppConfig.load(config_path)
+    present = set(installed_models(config.model_root))
+    table = Table(title=f"whisper.cpp models — {config.model_root}")
+    table.add_column("Model")
+    table.add_column("Disk")
+    table.add_column("Installed")
+    table.add_column("Notes")
+    for name, spec in MODEL_SPECS.items():
+        size = f"{spec.disk_mib / 1024:.1f} GiB" if spec.disk_mib >= 1024 else f"{spec.disk_mib} MiB"
+        table.add_row(name, size, "yes" if name in present else "no", spec.notes)
+    console.print(table)
 
 
 @project_app.command("init")
@@ -157,10 +222,22 @@ def transcribe_command(
     """Create a canonical transcript and enforce the Thai quality gate."""
 
     config = AppConfig.load(config_path)
+    resolved_model_path = model_path
+    if resolved_model_path is None and backend.strip().lower() in {
+        "auto",
+        "whisper.cpp",
+        "whisper-cpp",
+        "cpp",
+    }:
+        recommendation = recommend_whisper_model(detect_hardware())
+        cached = whisper_model_path(config.model_root, recommendation.default_model)
+        if cached.is_file():
+            resolved_model_path = cached
+
     media = probe_media(media_path, ffprobe_binary=config.ffprobe_binary)
     transcriber = select_backend(
         backend,
-        model_path=model_path,
+        model_path=resolved_model_path,
         imported_path=imported_path,
         whisper_binary=config.whisper_cpp_binary,
         ffmpeg_binary=config.ffmpeg_binary,
