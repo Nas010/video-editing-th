@@ -1,6 +1,6 @@
 # One-Time Configuration
 
-The repository defines the editing workflow. A small machine-local YAML file stores paths and preferences that differ between computers.
+The repository and installed skill define the editing workflow. A small machine-local YAML file stores only paths and reusable preferences that genuinely differ between computers.
 
 ## Run the wizard once
 
@@ -8,18 +8,17 @@ The repository defines the editing workflow. A small machine-local YAML file sto
 video-editing-th configure
 ```
 
-The wizard asks for optional folders containing:
+The wizard asks for optional local folders containing:
 
 - B-roll;
 - overlays and graphics;
-- sound effects;
-- music;
-- transitions;
 - backgrounds.
 
-It also confirms the default editing profile, output dimensions, frame rate, and Thai-caption preference. Press Enter to keep an existing value when rerunning the wizard. Leave an optional folder blank when that asset category is not available.
+It also confirms the default editing profile. Press Enter to keep an existing value when rerunning the wizard. Leave an optional folder blank when that visual category is not available.
 
 Every non-empty folder must already exist. Paths are resolved before they are saved.
+
+ChatCut supplies sound effects, music, and transitions through its native libraries. The social-video default is fixed at 1080x1920 at 30 fps. Captions are decided in each project prompt. None of those are one-time machine questions.
 
 ## Where configuration is stored
 
@@ -60,28 +59,21 @@ video-editing-th configure \
   --non-interactive \
   --broll "/Users/example/Video Assets/B-roll" \
   --overlays "/Users/example/Video Assets/Overlays" \
-  --sfx "/Users/example/Video Assets/SFX" \
-  --music "/Users/example/Video Assets/Music" \
-  --transitions "/Users/example/Video Assets/Transitions" \
   --backgrounds "/Users/example/Video Assets/Backgrounds" \
-  --profile thai-fast-reel \
-  --width 1080 \
-  --height 1920 \
-  --fps 30 \
-  --captions
+  --profile thai-fast-reel
 ```
 
 Omit folders that do not exist. Codex must never invent a path.
 
-## Index configured assets
+## Index configured visual assets
 
-After configuration, build or refresh the shared catalog:
+After configuration, build or refresh the shared visual catalog:
 
 ```bash
 video-editing-th assets index-configured
 ```
 
-All configured role folders are scanned together. This matters because missing catalog entries are pruned only after the complete combined scan; indexing B-roll cannot accidentally remove indexed SFX from another configured root.
+All configured visual folders are scanned together. Missing catalog entries are pruned only after the complete combined scan, so indexing B-roll cannot accidentally remove overlays or backgrounds from another configured root.
 
 Search and annotation commands use the configured catalog automatically, so `--catalog` is normally unnecessary:
 
@@ -99,7 +91,17 @@ Once configured, invoke the installed skill with only the changing project input
 $video-editing-th <footage-folder>
 ```
 
-That means the full Thai fast-Reel workflow unless the user provides a per-project override. For example, “no captions for this one” changes only that project; it does not rewrite the saved configuration.
+That means the full Thai fast-Reel workflow unless the user provides a per-project override. Captions are never inferred from the machine config:
+
+```text
+$video-editing-th /path/to/footage — add Thai captions
+```
+
+When the current prompt says nothing about captions, no captions are created.
+
+## Legacy configuration migration
+
+Earlier versions temporarily stored native audio folders, transition folders, output dimensions, and caption settings. Current releases ignore those deprecated fields when loading the file. Run the wizard again and save the configuration to rewrite it in the simplified form.
 
 ## Example YAML
 
@@ -107,7 +109,7 @@ That means the full Thai fast-Reel workflow unless the user provides a per-proje
 assets:
   broll: /Users/example/Video Assets/B-roll
   overlays: /Users/example/Video Assets/Overlays
-  sfx: /Users/example/Video Assets/SFX
+  backgrounds: /Users/example/Video Assets/Backgrounds
   catalog_path: /Users/example/.local/share/video-editing-th/assets.db
   preview_dir: /Users/example/.cache/video-editing-th/asset-previews
 workflow:
@@ -115,16 +117,7 @@ workflow:
   editor_backend: chatcut
   use_broll: true
   use_overlays: true
-  use_sfx: true
-  use_music: true
-  use_transitions: true
   use_motion: true
-  captions_enabled: true
-  caption_language: th
-output:
-  width: 1080
-  height: 1920
-  fps: 30.0
 model_root: /Users/example/.cache/video-editing-th/models
 ffmpeg_binary: ffmpeg
 ffprobe_binary: ffprobe
