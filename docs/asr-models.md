@@ -104,13 +104,13 @@ The repository currently pins whisper.cpp `v1.9.2` for reproducibility. Override
 To install only whisper.cpp and its model:
 
 ```bash
-scripts/setup_whisper_cpp_macos.sh --model auto --install-system
+bash scripts/setup_whisper_cpp_macos.sh --model auto --install-system
 ```
 
 Or force the accuracy-oriented quantized model:
 
 ```bash
-scripts/setup_whisper_cpp_macos.sh --model large-v3-q5_0 --install-system
+bash scripts/setup_whisper_cpp_macos.sh --model large-v3-q5_0 --install-system
 ```
 
 Model weights are intentionally excluded from Git.
