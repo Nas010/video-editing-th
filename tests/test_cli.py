@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import yaml
+from click import unstyle
 from typer.testing import CliRunner
 
 from video_editing_th.cli import app
@@ -35,8 +36,9 @@ def test_configure_help_only_exposes_machine_local_visual_choices() -> None:
     result = runner.invoke(app, ["configure", "--help"])
 
     assert result.exit_code == 0
+    help_text = unstyle(result.stdout)
     for option in ["--broll", "--overlays", "--backgrounds", "--profile"]:
-        assert option in result.stdout
+        assert option in help_text
     for removed in [
         "--sfx",
         "--music",
@@ -47,7 +49,7 @@ def test_configure_help_only_exposes_machine_local_visual_choices() -> None:
         "--captions",
         "--no-captions",
     ]:
-        assert removed not in result.stdout
+        assert removed not in help_text
 
 
 def test_configure_non_interactive_writes_only_machine_local_defaults(tmp_path: Path) -> None:
