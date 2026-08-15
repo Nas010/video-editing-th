@@ -53,8 +53,39 @@ def test_required_release_documents_exist_and_are_linked() -> None:
         "video-editing-th config show",
         "video-editing-th assets index-configured",
         "$video-editing-th <footage-folder>",
+        "ChatCut-native sound effects",
+        "ChatCut-native music",
+        "ChatCut-native transitions",
+        "captions are a per-project prompt choice",
+        "1080x1920 at 30 fps",
     ]:
         assert phrase in readme
+
+
+def test_configuration_docs_do_not_request_native_chatcut_or_output_choices() -> None:
+    combined = "\n".join(
+        (ROOT / relative).read_text(encoding="utf-8")
+        for relative in [
+            "README.md",
+            "docs/setup.md",
+            "docs/configuration.md",
+            "docs/asset-library.md",
+        ]
+    )
+    for removed in [
+        "Sound-effects folder",
+        "Music folder",
+        "Transitions folder",
+        "--sfx",
+        "--music",
+        "--transitions",
+        "--width 1080",
+        "--height 1920",
+        "--fps 30",
+        "--captions",
+        "captions_enabled",
+    ]:
+        assert removed not in combined
 
 
 def test_documented_help_commands_execute() -> None:
