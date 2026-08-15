@@ -38,11 +38,11 @@ Issues = "https://github.com/Nas010/video-editing-th/issues"
 
 [project.optional-dependencies]
 transcription = ["faster-whisper>=1.1,<2"]
-scene-detection = ["scenedetect[opencv]>=0.6.5,<0.7"]
+scene-detection = ["scenedetect[opencv]>=0.6.5,<0.8"]
 timeline = ["opentimelineio>=0.17,<0.19"]
 all = [
   "faster-whisper>=1.1,<2",
-  "scenedetect[opencv]>=0.6.5,<0.7",
+  "scenedetect[opencv]>=0.6.5,<0.8",
   "opentimelineio>=0.17,<0.19",
 ]
 dev = [
