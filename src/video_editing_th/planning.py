@@ -34,19 +34,19 @@ def validate_edit_plan(
     errors: list[str] = []
     warnings: list[str] = list(plan.warnings)
 
-    for source_sha256, transcript in transcripts.items():
-        quality = validate_thai_transcript(transcript)
+    for source_sha256, available_transcript in transcripts.items():
+        quality = validate_thai_transcript(available_transcript)
         if not quality.safe_for_automatic_editing:
             codes = ", ".join(issue.code for issue in quality.issues) or "unknown failure"
             errors.append(f"Transcript {source_sha256[:12]} failed the Thai quality gate: {codes}.")
 
     for clip in plan.structural_clips:
-        transcript = transcripts.get(clip.source_sha256)
-        if transcript is None:
+        clip_transcript = transcripts.get(clip.source_sha256)
+        if clip_transcript is None:
             errors.append(f"Clip {clip.id} has no transcript for source {clip.source_sha256[:12]}.")
             continue
         for edge_name, edge in (("start", clip.source_start), ("end", clip.source_end)):
-            for word in transcript.words:
+            for word in clip_transcript.words:
                 if word.start + edge_tolerance_seconds < edge < word.end - edge_tolerance_seconds:
                     errors.append(
                         f"Clip {clip.id} {edge_name}={edge:.3f}s falls inside spoken word "

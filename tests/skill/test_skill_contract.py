@@ -32,6 +32,7 @@ def test_skill_references_every_operational_guide_and_core_command() -> None:
     text = read(SKILL)
     expected_references = [
         "references/thai-transcription.md",
+        "references/asr-models.md",
         "references/asset-selection.md",
         "references/chatcut-execution.md",
         "references/qa.md",
@@ -42,6 +43,7 @@ def test_skill_references_every_operational_guide_and_core_command() -> None:
 
     for command in [
         "video-editing-th doctor",
+        "video-editing-th models recommend",
         "video-editing-th project init",
         "video-editing-th transcribe",
         "video-editing-th analyze",
@@ -56,6 +58,7 @@ def test_reference_contracts_cover_execution_and_bounded_qa() -> None:
     chatcut = read(SKILL_ROOT / "references" / "chatcut-execution.md")
     assets = read(SKILL_ROOT / "references" / "asset-selection.md")
     thai = read(SKILL_ROOT / "references" / "thai-transcription.md")
+    asr = read(SKILL_ROOT / "references" / "asr-models.md")
     qa = read(SKILL_ROOT / "references" / "qa.md")
 
     assert "MCP" in chatcut
@@ -68,6 +71,9 @@ def test_reference_contracts_cover_execution_and_bounded_qa() -> None:
     assert "language" in thai.casefold() and "th" in thai
     assert "CJK" in thai
     assert "safe_for_automatic_editing" in thai
+    assert "8 GB" in asr
+    assert "large-v3-turbo-q5_0" in asr
+    assert "speech recognition" in asr.casefold()
     assert "three" in qa.casefold() or "3" in qa
     assert "cut boundar" in qa.casefold()
 

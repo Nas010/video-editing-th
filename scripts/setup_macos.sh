@@ -4,15 +4,18 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 INSTALL_SYSTEM=0
 INSTALL_OPTIONAL=0
+INSTALL_WHISPER=0
 
 usage() {
   cat <<'EOF'
-Usage: scripts/setup_macos.sh [--install-system] [--with-optional]
+Usage: scripts/setup_macos.sh [--install-system] [--with-optional] [--with-whisper]
 
 Without --install-system, the script never invokes Homebrew. It creates the
 Python environment, installs the package, and reports missing external tools.
 --with-optional installs optional Python adapters such as faster-whisper,
 PySceneDetect, and OpenTimelineIO.
+--with-whisper builds the pinned whisper.cpp release and downloads the
+hardware-recommended multilingual model outside the Git repository.
 EOF
 }
 
@@ -20,6 +23,7 @@ for argument in "$@"; do
   case "${argument}" in
     --install-system) INSTALL_SYSTEM=1 ;;
     --with-optional) INSTALL_OPTIONAL=1 ;;
+    --with-whisper) INSTALL_WHISPER=1 ;;
     -h|--help) usage; exit 0 ;;
     *) printf 'Unknown option: %s\n' "${argument}" >&2; usage >&2; exit 2 ;;
   esac
@@ -63,6 +67,16 @@ else
   RUNNER=(python -m video_editing_th.cli)
 fi
 
+if [[ "${INSTALL_WHISPER}" -eq 1 ]]; then
+  model_name="$("${RUNNER[@]}" models recommend --name-only)"
+  whisper_args=(--model "${model_name}")
+  if [[ "${INSTALL_SYSTEM}" -eq 1 ]]; then
+    whisper_args+=(--install-system)
+  fi
+  bash "${ROOT_DIR}/scripts/setup_whisper_cpp_macos.sh" "${whisper_args[@]}"
+  export PATH="${HOME}/.local/bin:${PATH}"
+fi
+
 if [[ -f "${ROOT_DIR}/skills/video-editing-th/SKILL.md" ]]; then
   "${ROOT_DIR}/scripts/install_codex_skill.sh"
 fi
@@ -70,6 +84,6 @@ fi
 "${RUNNER[@]}" doctor || true
 cat <<EOF
 
-Setup finished. External model weights and local asset/footage paths are not
-installed automatically. See docs/setup.md after cloning.
+Setup finished. Local asset/footage paths are not configured automatically.
+Use 'video-editing-th models recommend' and see docs/setup.md for model details.
 EOF

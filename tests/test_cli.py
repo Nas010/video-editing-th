@@ -13,4 +13,13 @@ def test_root_help_lists_primary_workflows() -> None:
     assert "doctor" in result.stdout
     assert "project" in result.stdout
     assert "assets" in result.stdout
+    assert "models" in result.stdout
     assert "plan" in result.stdout
+
+
+def test_models_help_exposes_recommendation_and_cache_commands() -> None:
+    result = runner.invoke(app, ["models", "--help"])
+
+    assert result.exit_code == 0
+    assert "recommend" in result.stdout
+    assert "list" in result.stdout

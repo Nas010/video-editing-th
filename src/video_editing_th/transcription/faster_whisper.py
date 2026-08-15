@@ -37,7 +37,7 @@ class FasterWhisperBackend:
                 compute_type=self.compute_type,
             )
         try:
-            from faster_whisper import WhisperModel
+            from faster_whisper import WhisperModel  # type: ignore[import-not-found]
         except ImportError as exc:
             raise VideoEditingError(
                 "faster-whisper is not installed; install the transcription extra"

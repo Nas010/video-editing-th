@@ -13,7 +13,7 @@ Source footage is immutable. Write all generated artifacts beneath the project's
 
 ## Hard Gates
 
-1. Run `video-editing-th doctor` before the first project on a machine.
+1. Run `video-editing-th doctor` before the first project on a machine. Run `video-editing-th models recommend` and verify the local ASR model choice/cache using [references/asr-models.md](references/asr-models.md).
 2. Initialize with `video-editing-th project init <footage> --profile <profile>` and inventory it.
 3. Transcribe each source using `video-editing-th transcribe ... --language th`.
 4. Stop structural editing unless every source used in the plan passes the Thai quality gate. Read [references/thai-transcription.md](references/thai-transcription.md).
