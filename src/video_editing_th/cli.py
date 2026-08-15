@@ -145,9 +145,7 @@ def configure_command(
         selected_width = width or current.output.width
         selected_height = height or current.output.height
         selected_fps = fps or current.output.fps
-        selected_captions = (
-            captions if captions is not None else current.workflow.captions_enabled
-        )
+        selected_captions = captions if captions is not None else current.workflow.captions_enabled
     else:
         selected_broll = _selected_or_prompted_directory(
             broll,
@@ -228,13 +226,9 @@ def configure_command(
             "use_sfx": use_sfx if use_sfx is not None else current.workflow.use_sfx,
             "use_music": use_music if use_music is not None else current.workflow.use_music,
             "use_transitions": (
-                use_transitions
-                if use_transitions is not None
-                else current.workflow.use_transitions
+                use_transitions if use_transitions is not None else current.workflow.use_transitions
             ),
-            "use_motion": (
-                use_motion if use_motion is not None else current.workflow.use_motion
-            ),
+            "use_motion": (use_motion if use_motion is not None else current.workflow.use_motion),
         }
     )
     output = current.output.model_copy(
