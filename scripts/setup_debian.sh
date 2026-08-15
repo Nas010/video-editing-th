@@ -44,7 +44,7 @@ if command -v uv >/dev/null; then
   else
     uv sync --extra dev
   fi
-  RUNNER=(uv run)
+  RUNNER=(uv run video-editing-th)
 else
   python3 -m venv .venv
   # shellcheck disable=SC1091
