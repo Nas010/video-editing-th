@@ -10,7 +10,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION: Literal[1] = 1
 Sha256 = str
 
 
@@ -298,13 +298,13 @@ class EditPlan(CanonicalModel):
 
     @model_validator(mode="after")
     def validate_timeline(self) -> EditPlan:
-        ordered = sorted(self.structural_clips, key=lambda clip: clip.timeline_start)
-        for previous, current in pairwise(ordered):
-            if current.timeline_start < previous.timeline_end - 1e-6:
+        ordered_clips = sorted(self.structural_clips, key=lambda clip: clip.timeline_start)
+        for previous_clip, current_clip in pairwise(ordered_clips):
+            if current_clip.timeline_start < previous_clip.timeline_end - 1e-6:
                 raise ValueError("structural clips overlap on the output timeline")
         ordered_captions = sorted(self.captions, key=lambda cue: cue.start)
-        for previous, current in pairwise(ordered_captions):
-            if current.start < previous.start:
+        for previous_caption, current_caption in pairwise(ordered_captions):
+            if current_caption.start < previous_caption.start:
                 raise ValueError("captions must be ordered")
         return self
 
