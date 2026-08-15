@@ -9,6 +9,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from .asr_models import detect_hardware, installed_models, recommend_whisper_model
 from .config import AppConfig
 
 Which = Callable[[str], str | None]
@@ -60,6 +61,14 @@ def run_doctor(
     if faster_whisper_available is None:
         faster_whisper_available = importlib.util.find_spec("faster_whisper") is not None
 
+    hardware = detect_hardware()
+    recommendation = recommend_whisper_model(hardware)
+    memory_detail = (
+        f"{hardware.memory_gib:.1f} GiB RAM"
+        if hardware.memory_gib is not None
+        else "RAM unknown"
+    )
+
     checks: list[DoctorCheck] = [
         DoctorCheck(
             name="python",
@@ -67,7 +76,16 @@ def run_doctor(
             required=True,
             detail=f"Python {version[0]}.{version[1]}.{version[2]} (requires >= 3.11)",
             path=Path(sys.executable),
-        )
+        ),
+        DoctorCheck(
+            name="hardware",
+            available=True,
+            required=False,
+            detail=(
+                f"{hardware.os_name} {hardware.architecture}; {memory_detail}; "
+                f"recommended ASR model: {recommendation.default_model}"
+            ),
+        ),
     ]
 
     def executable_check(name: str, binary: str, *, required: bool) -> DoctorCheck:
@@ -128,6 +146,7 @@ def run_doctor(
         ]
     )
     model_root = config.model_root
+    present_models = installed_models(model_root)
     checks.append(
         DoctorCheck(
             name="model-cache",
@@ -139,6 +158,22 @@ def run_doctor(
                 else f"Model cache will be created at {model_root}"
             ),
             path=model_root if model_root.exists() else None,
+        )
+    )
+    checks.append(
+        DoctorCheck(
+            name="whisper-model",
+            available=bool(present_models),
+            required=False,
+            detail=(
+                "Installed: " + ", ".join(present_models)
+                if present_models
+                else (
+                    f"No supported GGML model found in {model_root}; recommended: "
+                    f"{recommendation.default_model}"
+                )
+            ),
+            path=model_root if present_models else None,
         )
     )
     return DoctorReport(checks=tuple(checks))
