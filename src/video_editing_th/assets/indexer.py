@@ -56,38 +56,91 @@ def index_assets(
     preview_func: PreviewFunc = generate_contact_sheet,
     strict: bool = True,
 ) -> IndexSummary:
-    root = asset_root.expanduser().resolve(strict=True)
-    preview_root = preview_dir.expanduser().resolve(strict=False)
-    files = sorted(
-        (
-            path
-            for path in root.rglob("*")
-            if path.is_file() and path.suffix.lower() in ASSET_EXTENSIONS
-        ),
-        key=lambda path: path.relative_to(root).as_posix().casefold(),
+    """Index one conventional library root, inferring roles from its folders."""
+
+    root = _resolve_directory(asset_root, label="asset library")
+    file_roles = {path: infer_asset_role(path, root) for path in _discover_files(root)}
+    return _index_file_roles(
+        file_roles,
+        catalog,
+        preview_dir,
+        ffprobe_binary=ffprobe_binary,
+        ffmpeg_binary=ffmpeg_binary,
+        probe_func=probe_func,
+        preview_func=preview_func,
+        strict=strict,
     )
+
+
+def index_asset_folders(
+    folders: dict[AssetRole, Path],
+    catalog: AssetCatalog,
+    preview_dir: Path,
+    *,
+    ffprobe_binary: str = "ffprobe",
+    ffmpeg_binary: str = "ffmpeg",
+    probe_func: ProbeFunc = probe_media,
+    preview_func: PreviewFunc = generate_contact_sheet,
+    strict: bool = True,
+) -> IndexSummary:
+    """Index role-specific folders and prune only after their combined scan."""
+
+    if not folders:
+        raise ValueError("At least one configured asset folder is required")
+    file_roles: dict[Path, AssetRole] = {}
+    for role, raw_root in sorted(folders.items(), key=lambda item: item[0].value):
+        root = _resolve_directory(raw_root, label=f"{role.value} asset folder")
+        for path in _discover_files(root):
+            previous = file_roles.get(path)
+            if previous is not None and previous != role:
+                raise ValueError(
+                    f"Asset {path} appears in both {previous.value} and {role.value} folders"
+                )
+            file_roles[path] = role
+    return _index_file_roles(
+        file_roles,
+        catalog,
+        preview_dir,
+        ffprobe_binary=ffprobe_binary,
+        ffmpeg_binary=ffmpeg_binary,
+        probe_func=probe_func,
+        preview_func=preview_func,
+        strict=strict,
+    )
+
+
+def _index_file_roles(
+    file_roles: dict[Path, AssetRole],
+    catalog: AssetCatalog,
+    preview_dir: Path,
+    *,
+    ffprobe_binary: str,
+    ffmpeg_binary: str,
+    probe_func: ProbeFunc,
+    preview_func: PreviewFunc,
+    strict: bool,
+) -> IndexSummary:
+    preview_root = preview_dir.expanduser().resolve(strict=False)
     indexed = updated = unchanged = failed = 0
     errors: list[str] = []
 
-    for path in files:
+    for path, role in sorted(
+        file_roles.items(),
+        key=lambda item: item[0].as_posix().casefold(),
+    ):
         existing = catalog.get_by_path(path)
         current_hash = hash_file(path)
-        if existing is not None and existing.sha256 == current_hash:
+        if existing is not None and existing.sha256 == current_hash and existing.role == role:
             unchanged += 1
             continue
         try:
             media = probe_func(path, ffprobe_binary=ffprobe_binary)
-            role = infer_asset_role(path, root)
             asset_id = existing.id if existing else _asset_id(path)
             contact_sheet = None
             if (
                 media.has_video
                 and media.duration_seconds > 0
-                and role
-                not in {
-                    AssetRole.SFX,
-                    AssetRole.MUSIC,
-                }
+                and role not in {AssetRole.SFX, AssetRole.MUSIC}
             ):
                 contact_sheet = preview_root / f"{asset_id}.jpg"
                 preview_func(
@@ -130,7 +183,7 @@ def index_assets(
             if strict:
                 raise
 
-    removed = catalog.delete_missing(set(files))
+    removed = catalog.delete_missing(set(file_roles))
     return IndexSummary(
         indexed=indexed,
         updated=updated,
@@ -162,6 +215,27 @@ def infer_asset_role(path: Path, root: Path) -> AssetRole:
     if suffix in IMAGE_EXTENSIONS:
         return AssetRole.IMAGE
     return AssetRole.BROLL
+
+
+def _discover_files(root: Path) -> list[Path]:
+    return sorted(
+        (
+            path.resolve()
+            for path in root.rglob("*")
+            if path.is_file() and path.suffix.lower() in ASSET_EXTENSIONS
+        ),
+        key=lambda path: path.as_posix().casefold(),
+    )
+
+
+def _resolve_directory(path: Path, *, label: str) -> Path:
+    try:
+        resolved = path.expanduser().resolve(strict=True)
+    except OSError as exc:
+        raise ValueError(f"Configured {label} does not exist: {path}") from exc
+    if not resolved.is_dir():
+        raise ValueError(f"Configured {label} is not a directory: {resolved}")
+    return resolved
 
 
 def _asset_id(path: Path) -> str:
