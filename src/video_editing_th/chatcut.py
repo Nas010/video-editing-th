@@ -100,6 +100,8 @@ def build_chatcut_execution_manifest(
             phase, action = "visuals", "place_overlay"
         elif operation.kind == CreativeOperationKind.SFX:
             phase, action = "audio", "place_sfx"
+        elif operation.kind == CreativeOperationKind.MUSIC:
+            phase, action = "audio", "place_music"
         elif operation.kind == CreativeOperationKind.TRANSITION:
             phase, action = "transitions", "add_transition"
         else:
